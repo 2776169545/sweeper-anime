@@ -198,10 +198,6 @@ button:disabled{filter:grayscale(.8);opacity:.45;cursor:not-allowed}
 </div></div>
 <div id="flash"></div>
 <div id="toasts"></div>
-<div id="popup" class="modal hidden"><div class="modal-box popup-box">
-  <div class="popup-head"><h2 id="popupTitle"></h2><button id="popupClose" title="关闭">✕</button></div>
-  <div id="popupBody"></div>
-</div></div>
 <div id="modal" class="modal hidden"><div class="modal-box" id="modalBox">
   <h2 id="modalTitle"></h2><div id="modalBody"></div>
   <button id="modalBtn">好的！</button>
@@ -221,7 +217,7 @@ button:disabled{filter:grayscale(.8);opacity:.45;cursor:not-allowed}
 const W = 2048, H = 2048, N = W * H;
 const COLLECT_COUNT = 12;
 const PROBE_R = 6, BLAST_R = 5, MINER_HALF = 2;
-const SAVE_KEY = 'sweeper_anime_v1';
+const SAVE_KEY = 'xiuxian_sweeper_v1';
 
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function idx(x,y){return y*W+x;}
@@ -1072,19 +1068,22 @@ const SFX=(()=>{
     const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.value=800;
     src.connect(fl);fl.connect(gn);gn.connect(c.destination);src.start();src.stop(c.currentTime+d);
   }
+  /* 仙侠音色助手：古筝式拨弦（短促起音 + 轻微下滑），磬/铃式长鸣 */
+  function pluck(f,d,g){return tone(f,d,'triangle',g,-f*0.02);}
+  function bell(f,d,g,delay){delay=delay||0;setTimeout(()=>tone(f,d,'sine',g),delay);}
   return{
     get muted(){return muted;},
     set muted(v){muted=v;try{localStorage.setItem(SAVE_KEY+'_muted',v?'1':'0');}catch(e){}},
     unlock(){ac();},
-    pop(){tone(420,0.07,'triangle',0.28);},
-    flag(){tone(300,0.05,'square',0.18);},
-    coin(){tone(880,0.07,'sine',0.3);setTimeout(()=>tone(1320,0.1,'sine',0.3),55);},
-    collect(){[660,880,1320,1760].forEach((f,i)=>setTimeout(()=>tone(f,0.15,'sine',0.34),i*75));},
-    explode(){noise(0.45,0.75);tone(85,0.5,'sawtooth',0.45,-50);},
-    blast(){noise(0.35,0.6);tone(65,0.4,'sawtooth',0.4,-30);},
-    shield(){tone(1400,0.09,'sine',0.3);tone(900,0.13,'sine',0.26,300);},
-    boost(){[520,780,1170].forEach((f,i)=>setTimeout(()=>tone(f,0.13,'sine',0.32),i*70));},
-    teleport(){noise(0.25,0.45);tone(300,0.35,'sine',0.26,220);},
+    pop(){pluck(587.33,0.09,0.22);},                                    /* 翻开：短拨弦 */
+    flag(){pluck(493.88,0.06,0.16);tone(740,0.05,'triangle',0.08);},    /* 插旗：双音点响 */
+    coin(){bell(1046.5,0.4,0.2);bell(1567.98,0.6,0.12,55);},            /* 灵石：磬音 */
+    collect(){[1046.5,1174.66,1318.51,1567.98].forEach((f,i)=>setTimeout(()=>pluck(f,0.28,0.26),i*70));}, /* 灵宝：五声上行 */
+    explode(){noise(0.45,0.6);tone(82.41,0.5,'sawtooth',0.4,-40);bell(1046.5,0.5,0.1,60);}, /* 禁制触发：闷雷+磬 */
+    blast(){noise(0.35,0.5);tone(65.41,0.4,'sawtooth',0.35,-30);bell(659.25,0.4,0.12,40);},
+    shield(){bell(2093,0.35,0.16);bell(2637,0.5,0.1,30);},               /* 玄光盾：金石之鸣 */
+    boost(){[523.25,659.25,783.99,1046.5].forEach((f,i)=>setTimeout(()=>pluck(f,0.15,0.24),i*55));}, /* 沙漏加速：急促上行 */
+    teleport(){noise(0.25,0.35);bell(392,0.4,0.16);bell(523.25,0.5,0.1,50);},
   };
 })();
 /* 特效钩子：测试环境为 no-op */
@@ -1145,59 +1144,99 @@ saveSoon=function(){if(saveTimer)return;saveTimer=setTimeout(()=>{saveTimer=null
 /* ---------- 背景音乐（WebAudio 合成，无外部文件；事件有专属曲风） ---------- */
 const MUSIC=(()=>{
   let ctx=null,on=false,vol=0.45,timer=null,nextT=0,stepIdx=0,style='normal';
-  /* 宫商角徵羽 五声音阶（C宫）：C D E G A C' D' E' G' A' C'' */
+  /* 宫商角徵羽 五声音阶（C宫），SCALE[i]：0=C3 1=D3 2=E3 3=G3 4=A3 5=C4 6=D4 7=E4 8=G4 9=A4
+     10=C5 11=D5 12=E5 13=G5 14=A5 15=C6 16=D6 17=E6 18=G6 19=A6 */
   const SCALE=[130.81,146.83,164.81,196.00,220.00,261.63,293.66,329.63,392.00,440.00,523.25,587.33,659.25,783.99,880.00,1046.50,1174.66,1318.51,1567.98,1760.00];
+  /* 四重奏：主奏旋律(mel) + 古筝琶音(和弦根/五/八) + 低音大提(root-5) + 木鱼/磬节奏 */
   const STYLES={
-    normal:{root:5,mode:[0,2,4,7,9,12,14,16],seq:[0,2,4,7,9,12,14,16,19,16,14,12,9,7,4,2],step:0.55,type:'triangle',arp:0.16,bass:0.05,acc:0.1,volMul:1},
-    fog:{root:3,mode:[0,2,4,7,9,12,14,16],seq:[0,4,7,9,4,7,9,12,7,9,12,14,9,12,14,16],step:0.75,type:'sine',arp:0.1,bass:0.05,acc:0.06,volMul:0.8},
-    night:{root:7,mode:[0,2,3,5,7,9,10,12],seq:[0,2,3,5,7,5,3,2,3,2,0,2,3,5,7,9],step:0.65,type:'sine',arp:0.09,bass:0.05,acc:0.05,volMul:0.75},
-    solar:{root:5,mode:[0,2,4,7,9,12,14,16],seq:[0,2,4,7,4,2,4,7,9,7,4,2,0,2,4,7],step:0.4,type:'triangle',arp:0.18,bass:0.06,acc:0.12,volMul:1.15},
-    lunar:{root:9,mode:[0,2,4,7,9,12,14,16],seq:[0,4,7,9,7,4,9,12,14,12,9,7,4,2,0,2],step:0.6,type:'sine',arp:0.12,bass:0.05,acc:0.07,volMul:0.9},
+    normal:{step:0.42,roots:[5,9,6,8],mel:[5,6,7,8, 7,6,5,6, 8,9,10,9, 7,6,5,5],oct:0,type:'triangle',lead:0.16,arp:0.06,bass:0.085,pad:0.03,perc:0.05,volMul:1},
+    fog:{step:0.5,roots:[8,5,9,6],mel:[8,7,6,5, -1,7,8,-1, 9,8,7,6, -1,7,6,-1],oct:-2,type:'sine',lead:0.14,arp:0.04,bass:0.07,pad:0.035,perc:0.035,volMul:0.85},
+    night:{step:0.48,roots:[9,5,8,6],mel:[9,8,7,6, 5,6,7,8, 9,8,6,5, -1,7,6,-1],oct:-1,type:'sine',lead:0.15,arp:0.045,bass:0.075,pad:0.03,perc:0.04,volMul:0.85},
+    solar:{step:0.3,roots:[5,8,6,9],mel:[10,12,13,12, 10,12,13,14, 13,12,10,12, 13,14,13,10],oct:0,type:'triangle',lead:0.17,arp:0.07,bass:0.08,pad:0.03,perc:0.055,volMul:1.15},
+    lunar:{step:0.5,roots:[9,8,5,9],mel:[14,13,12,10, 12,13,12,10, 9,10,12,13, 12,10,9,-1],oct:0,type:'sine',lead:0.15,arp:0.05,bass:0.07,pad:0.04,perc:0.04,volMul:0.9},
   };
   function ac(){if(!ctx){try{ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(ctx&&ctx.state==='suspended')ctx.resume();return ctx;}
-  function note(f,t,dur,g,type){
-    if(!ctx||!on)return;
+  /* 通用发声：快速起音 + 指数衰减；滑奏用于筝弦感 */
+  function play(f,t,dur,g,type,slide){
+    if(!ctx||!on||f<=0)return;
     const o=ctx.createOscillator(),gn=ctx.createGain();
     o.type=type||'sine';o.frequency.value=f;
-    /* 古筝式拨弦：快速起音 + 指数衰减，尾音略降 */
-    o.frequency.setValueAtTime(f*1.012,t);
-    o.frequency.exponentialRampToValueAtTime(f,t+0.06);
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),t+0.06);
     gn.gain.setValueAtTime(0.0001,t);
-    gn.gain.exponentialRampToValueAtTime(g,t+0.012);
+    gn.gain.exponentialRampToValueAtTime(g,t+0.015);
     gn.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    const master=ctx.createGain();master.gain.value=vol*4;
+    const master=ctx.createGain();master.gain.value=vol*3;
     o.connect(gn);gn.connect(master);master.connect(ctx.destination);
     o.start(t);o.stop(t+dur+0.05);
+  }
+  /* 主奏：基音 + 高八度泛音（明亮连贯） */
+  function lead(f,t,dur,g,type){
+    play(f,t,dur,g,type,-f*0.008);
+    play(f*2,t+0.012,dur*0.8,g*0.12,type);
+  }
+  /* 木鱼：短促高频敲击 */
+  function wood(t){
+    if(!ctx||!on)return;
+    const d=0.045,len=(ctx.sampleRate*d)|0,buf=ctx.createBuffer(1,len,ctx.sampleRate),dd=buf.getChannelData(0);
+    for(let i=0;i<len;i++)dd[i]=(Math.random()*2-1)*Math.pow(1-i/len,4);
+    const src=ctx.createBufferSource();src.buffer=buf;
+    const fl=ctx.createBiquadFilter();fl.type='bandpass';fl.frequency.value=2400;fl.Q.value=1.2;
+    const gn=ctx.createGain();gn.gain.value=0.05;
+    src.connect(fl);fl.connect(gn);gn.connect(ctx.destination);src.start(t);src.stop(t+d+0.01);
+  }
+  /* 磬/铃：乐句开头长鸣 */
+  function gong(t){
+    if(!ctx||!on)return;
+    const o=ctx.createOscillator(),gn=ctx.createGain();
+    o.type='sine';o.frequency.value=1567.98;
+    gn.gain.setValueAtTime(0.0001,t);
+    gn.gain.exponentialRampToValueAtTime(0.07,t+0.03);
+    gn.gain.exponentialRampToValueAtTime(0.0001,t+2.2);
+    const master=ctx.createGain();master.gain.value=vol*2.5;
+    o.connect(gn);gn.connect(master);master.connect(ctx.destination);
+    o.start(t);o.stop(t+2.3);
+    play(783.99,t,1.8,0.025,'sine');
   }
   function tick(){
     if(!on)return;
     const c=ac();if(!c)return;
     const st=STYLES[style]||STYLES.normal;
-    const si=i=>SCALE[i%SCALE.length];
-    while(nextT<c.currentTime+0.35){
-      const bar=nextT,ph=(stepIdx%8);
-      const base=st.seq[stepIdx%st.seq.length];
-      const f=si(st.root+st.mode[base%st.mode.length]);
-      /* 主旋律：宫音长音 + 旋律滑奏 */
-      for(let i=0;i<8;i++){
-        const s=st.seq[(stepIdx*2+i)%st.seq.length];
-        if(s%3===0)note(f*(s===0?1:2),bar+i*st.step*0.5,st.step*0.45,st.arp*0.7,st.type);
+    const si=i=>SCALE[Math.max(0,Math.min(19,i))];
+    while(nextT<c.currentTime+0.45){
+      const e=stepIdx,bar=(e>>3)%4,slot=(e>>1)%16,ph=e%8;
+      const root=st.roots[bar];
+      const beat=e*st.step; /* 当前八分音符时刻 */
+      /* 主奏旋律：每个四分拍，其余时间由琶音/低音托住，保证连贯 */
+      if((e&1)===0){
+        const m=st.mel[slot];
+        if(m>=0)lead(si(m+st.oct)*1,beat,st.step*2.6,st.lead*st.volMul,st.type);
       }
-      /* 低音：羽/宫 五度根音托底 */
-      for(let b=0;b<4;b++)note(si(st.root+st.mode[b%8])/2,bar+b*st.step*2,st.step*2.2,st.bass,'sine');
-      /* 泛音点缀 */
-      note(si(st.root+st.mode[((base+2)%8)])*2,bar+st.step*4,st.step*1.2,st.acc,'sine');
-      note(si(st.root+st.mode[((base+4)%8)])*2,bar+st.step*6,st.step*1,st.acc*0.8,'sine');
-      nextT=bar+st.step*8;
+      /* 古筝琶音：和弦 根/五度/八度 八分音符滚动 */
+      const chord=[root,root+3,root+5];
+      const arpP=[0,1,2,1, 0,1,2,1];
+      play(si(chord[arpP[ph]]),beat,st.step*1.3,st.arp*st.volMul,'triangle',-1.5);
+      /* 低音大提：小节首拍长音 + 中段五度 */
+      if(ph===0)play(si(root-5),beat,st.step*7.5,st.bass*st.volMul,'sine');
+      if(ph===4)play(si(root+3-5),beat,st.step*3,st.bass*0.7*st.volMul,'sine');
+      /* 铺底（中阮拨奏）：根音+五度双音长鸣 */
+      if(ph===0){
+        play(si(root-5+7),beat,st.step*7.5,st.pad*st.volMul,'sine');
+        play(si(root+3-5+7),beat,st.step*7.5,st.pad*0.8*st.volMul,'sine');
+      }
+      /* 木鱼节奏：正拍弱位（每小节第3、7个八分） */
+      if(ph===2||ph===6)wood(beat);
+      /* 磬：乐句（4小节）开头一声 */
+      if(e%32===0)gong(beat);
+      nextT=beat+st.step;
       stepIdx++;
     }
   }
   return{
     get on(){return on;},
-    set on(v){on=v;if(v){nextT=0;stepIdx=0;if(timer)clearInterval(timer);timer=setInterval(tick,120);ac();}else if(timer){clearInterval(timer);timer=null;}},
+    set on(v){on=v;if(v){ac();nextT=ctx?ctx.currentTime+0.06:0;stepIdx=0;if(timer)clearInterval(timer);timer=setInterval(tick,120);}else if(timer){clearInterval(timer);timer=null;}},
     get vol(){return vol;},
     set vol(v){vol=Math.max(0,Math.min(1,v));},
-    setStyle(st){style=STYLES[st]?st:'normal';nextT=0;stepIdx=0;},
+    setStyle(st){style=STYLES[st]?st:'normal';nextT=ctx?ctx.currentTime+0.06:0;stepIdx=0;},
     unlock(){if(on)ac();},
   };
 })();
@@ -1932,12 +1971,14 @@ function handleClick(x,y){
   }
   if(S.revMap[i]){
     if(S.mineMap[i])return;
+    const before=S.stats.revealedCount,hitsBefore=S.stats.hits;
     chord(x,y);
+    if(S.stats.revealedCount!==before||S.stats.hits!==hitsBefore)maybeNumFx(x,y);
     return;
   }
   if(!withinRevealRange(x,y)){FX.toast('⚠️ 距已探索区域超过 20 格，无法翻开');return;}
   const r=revealAt(x,y);
-  if(!r.exploded)FX.pop();
+  if(!r.exploded){FX.pop();maybeNumFx(x,y);}
 }
 function handleRight(x,y){
   if(S.armed){setArmed(null);return;}
@@ -2523,11 +2564,51 @@ function randomZeroPos(){
   }
   return{x,y};
 }
-function spawnCat(){
-  const p=randomZeroPos();
+function spawnCat(x,y,kid){
+  let p;
+  if(x==null||y==null){p=randomZeroPos();}
+  else p={x,y};
   const col=CAT_COLORS[(Math.random()*CAT_COLORS.length)|0];
   cats.push({x:p.x+0.5,y:p.y+0.5,tx:p.x+0.5,ty:p.y+0.5,speed:1.5+Math.random()*2.2,phase:Math.random()*6.28,color:col,dir:(Math.random()<0.5?1:-1),
-    mode:'walk',modeT:0,blinkT:2+Math.random()*3,blink:false,flee:null,fleeT:0});
+    mode:'walk',modeT:0,blinkT:2+Math.random()*3,blink:false,flee:null,fleeT:0,kid:!!kid});
+}
+/* 数字格特效：短暂变色 + 随机蹦出一只小灵狐 */
+let numGlows=[];
+function maybeNumFx(x,y){
+  const i=idx(x,y);
+  if(!S.revMap[i]||S.mineMap[i]||S.numMap[i]<=0)return;
+  if(Math.random()>0.09)return; /* ~9% 概率 */
+  numGlows.push({i,t:performance.now(),hue:Math.random()*360});
+  /* 在数字旁最近的已翻开空格召唤小灵狐 */
+  if(cats.length<24){
+    outer2:
+    for(let r=1;r<=3;r++){
+      for(let oy=-r;oy<=r;oy++)for(let ox=-r;ox<=r;ox++){
+        if(Math.max(Math.abs(ox),Math.abs(oy))!==r)continue;
+        const nx=x+ox,ny=y+oy;
+        if(!inB(nx,ny))continue;
+        const j=ny*W+nx;
+        if(S.revMap[j]&&!S.mineMap[j]&&S.numMap[j]===0){spawnCat(nx,ny,true);break outer2;}
+      }
+    }
+  }
+}
+function drawNumGlows(){
+  if(view.scale<4)return;
+  const s=view.scale,ox=view.x,oy=view.y,now=performance.now();
+  for(let k=numGlows.length-1;k>=0;k--){
+    const g=numGlows[k];
+    const age=now-g.t;
+    if(age>900){numGlows.splice(k,1);continue;}
+    const x=g.i%W,y=(g.i/W)|0;
+    const px=(x-ox)*s,py=(y-oy)*s;
+    if(px>cw||py>ch||px+s<0||py+s<0)continue;
+    const a=0.55*(1-age/900);
+    gctx.fillStyle='hsla('+g.hue+',85%,70%,'+a.toFixed(3)+')';
+    gctx.beginPath();
+    gctx.roundRect?gctx.roundRect(px+1,py+1,s-2,s-2,s*0.18):gctx.rect(px+1,py+1,s-2,s-2);
+    gctx.fill();
+  }
 }
 function pickTarget(c){
   const cx=Math.floor(c.x),cy=Math.floor(c.y);
@@ -2711,6 +2792,7 @@ function render(t){
   gctx.save();
   gctx.translate(shx,shy);
   if(view.scale>=4)drawCells();else drawPixels();
+  drawNumGlows();
   drawDecos();
   drawTreasureMarkers();
   drawHeroSwordMarker();
@@ -2845,7 +2927,7 @@ function drawCats(){
     const sy0=(c.y-oy)*s+Math.sin(t/400+c.phase)*bounce;
     const sx=(c.x-ox)*s;
     if(sx<-70||sy0<-70||sx>cw+70||sy0>ch+70)continue;
-    const u=5.5; /* 灵狐的大小固定，不随缩放改变 */
+    const u=5.5*(c.kid?0.72:1); /* 灵狐大小固定，不随缩放改变（幼狐略小） */
     const main=c.color[0],acc=c.color[1];
     const sleeping=c.mode==='sleep';
     const sy=sleeping?sy0+1.4*u:sy0;
@@ -2853,14 +2935,21 @@ function drawCats(){
       /* 狐耳（大而尖，带深色耳尖） */
       gctx.fillStyle=main;
       gctx.beginPath();
-      gctx.moveTo(sx-2.7*u,sy-1.2*u);gctx.lineTo(sx-1.2*u,sy-3.6*u);gctx.lineTo(sx+0.2*u,sy-1.2*u);gctx.fill();
+      gctx.moveTo(sx-2.9*u,sy-1.1*u);gctx.lineTo(sx-1.25*u,sy-4.0*u);gctx.lineTo(sx+0.15*u,sy-1.1*u);gctx.fill();
       gctx.beginPath();
-      gctx.moveTo(sx-0.2*u,sy-1.2*u);gctx.lineTo(sx+1.2*u,sy-3.6*u);gctx.lineTo(sx+2.7*u,sy-1.2*u);gctx.fill();
+      gctx.moveTo(sx-0.15*u,sy-1.1*u);gctx.lineTo(sx+1.25*u,sy-4.0*u);gctx.lineTo(sx+2.9*u,sy-1.1*u);gctx.fill();
+      /* 耳内（浅色衬毛） */
       gctx.fillStyle=acc;
       gctx.beginPath();
-      gctx.moveTo(sx-1.2*u,sy-2.1*u);gctx.lineTo(sx-1.7*u,sy-1.2*u);gctx.lineTo(sx-0.7*u,sy-1.2*u);gctx.fill();
+      gctx.moveTo(sx-1.5*u,sy-2.6*u);gctx.lineTo(sx-1.95*u,sy-1.1*u);gctx.lineTo(sx-0.85*u,sy-1.1*u);gctx.fill();
       gctx.beginPath();
-      gctx.moveTo(sx+1.2*u,sy-2.1*u);gctx.lineTo(sx+0.7*u,sy-1.2*u);gctx.lineTo(sx+1.7*u,sy-1.2*u);gctx.fill();
+      gctx.moveTo(sx+1.5*u,sy-2.6*u);gctx.lineTo(sx+0.85*u,sy-1.1*u);gctx.lineTo(sx+1.95*u,sy-1.1*u);gctx.fill();
+      /* 深色耳尖 */
+      gctx.fillStyle='#4a2a1a';
+      gctx.beginPath();
+      gctx.moveTo(sx-2.2*u,sy-2.9*u);gctx.lineTo(sx-1.25*u,sy-4.0*u);gctx.lineTo(sx-1.05*u,sy-2.7*u);gctx.fill();
+      gctx.beginPath();
+      gctx.moveTo(sx+2.2*u,sy-2.9*u);gctx.lineTo(sx+1.05*u,sy-2.7*u);gctx.lineTo(sx+1.25*u,sy-4.0*u);gctx.fill();
     }
     /* 身体 */
     gctx.fillStyle=main;
@@ -2889,16 +2978,22 @@ function drawCats(){
       gctx.arc(sx,sy+1.1*u,u*0.9,0,Math.PI*2);
       gctx.fill();
     }
-    /* 腮红 */
+    /* 白吻（狐：浅色口鼻部，位于眼下） */
     if(!sleeping){
-      gctx.fillStyle='rgba(255,140,120,0.4)';
-      gctx.fillRect(sx-2.3*u,sy+0.25*u,u*0.6,u*0.4);
-      gctx.fillRect(sx+1.7*u,sy+0.25*u,u*0.6,u*0.4);
-    }
-    /* 鼻子（狐：深色尖鼻） */
-    if(!sleeping&&!c.blink){
+      gctx.fillStyle=acc;
+      gctx.beginPath();
+      gctx.ellipse?gctx.ellipse(sx,sy+0.45*u,1.2*u,0.75*u,0,0,Math.PI*2):gctx.arc(sx,sy+0.45*u,0.8*u,0,Math.PI*2);
+      gctx.fill();
+      /* 鼻头（深色，吻部上缘） */
       gctx.fillStyle='#4a2a1a';
-      gctx.fillRect(sx-u*0.2,sy+0.3*u,u*0.4,u*0.32);
+      gctx.fillRect(sx-u*0.2,sy+0.28*u,u*0.4,u*0.34);
+      /* 小嘴 */
+      gctx.strokeStyle='#4a2a1a';
+      gctx.lineWidth=Math.max(1,u*0.12);
+      gctx.beginPath();
+      gctx.moveTo(sx,sy+0.62*u);gctx.lineTo(sx-u*0.2,sy+0.8*u);
+      gctx.moveTo(sx,sy+0.62*u);gctx.lineTo(sx+u*0.2,sy+0.8*u);
+      gctx.stroke();
     }
     /* 眼睛 */
     const eyeClosed=c.blink||sleeping;
@@ -2918,17 +3013,30 @@ function drawCats(){
       gctx.fillRect(ex1+0.15*u,ey-0.1*u,u*0.2,u*0.3);
       gctx.fillRect(ex2+0.15*u,ey-0.1*u,u*0.2,u*0.3);
     }
-    /* 尾巴（坐着时摆动） */
+    /* 蓬松大尾（白尾尖，坐着/走动时摆动） */
     const wag=(c.mode==='sit'||c.mode==='sleep')?Math.sin(t/300+c.phase)*0.5*u:0;
-    gctx.fillStyle=main;
     if(sleeping){
-      gctx.fillRect(sx+c.dir*2.6*u,sy-1.6*u,u*0.8,2.2*u);
+      /* 蜷睡时尾巴环抱身体 */
+      gctx.fillStyle=main;
+      gctx.beginPath();
+      gctx.ellipse?gctx.ellipse(sx+c.dir*3.0*u,sy-0.3*u,1.9*u,0.95*u,0,0,Math.PI*2):gctx.arc(sx+c.dir*3.0*u,sy-0.3*u,1.2*u,0,Math.PI*2);
+      gctx.fill();
       gctx.fillStyle=acc;
-      gctx.fillRect(sx+c.dir*2.6*u,sy-1.9*u+wag,u*0.8,u*0.7);
+      gctx.beginPath();
+      gctx.arc(sx+c.dir*4.3*u+wag*0.6,sy-0.75*u,0.9*u,0,Math.PI*2);
+      gctx.fill();
     }else{
-      gctx.fillRect(sx-c.dir*2.6*u,sy-2.8*u+wag,u*0.9,2.2*u);
+      /* 醒着：大尾向上竖起（深色主毛 + 白尾尖） */
+      const tx0=sx-c.dir*2.2*u,ty0=sy+0.4*u;
+      const tx1=sx-c.dir*4.4*u,ty1=sy-2.0*u+wag;
+      gctx.fillStyle=main;
+      gctx.beginPath();
+      gctx.ellipse?gctx.ellipse((tx0+tx1)/2,(ty0+ty1)/2,2.0*u,0.8*u,Math.atan2(ty1-ty0,tx1-tx0),0,Math.PI*2):gctx.arc(tx1,ty1,1.6*u,0,Math.PI*2);
+      gctx.fill();
       gctx.fillStyle=acc;
-      gctx.fillRect(sx-c.dir*2.6*u,sy-3.1*u+wag,u*0.9,u*0.7);
+      gctx.beginPath();
+      gctx.arc(tx1,ty1,1.0*u,0,Math.PI*2);
+      gctx.fill();
     }
     /* 胡须（深色，便于浅色地图上辨识） */
     if(!sleeping){
@@ -3263,7 +3371,7 @@ function resetGame(){
   S.rebirths++;
   checkAchievements();
   try{localStorage.removeItem(SAVE_KEY);}catch(e){}
-  cats.length=0;decos.length=0;parts.length=0;floats.length=0;
+  cats.length=0;decos.length=0;parts.length=0;floats.length=0;numGlows.length=0;
   homeZero=idx(W>>1,H>>1);
   const seed=(Math.random()*0x7fffffff)|0;
   const lb=$('loadBar'),lt=$('loadText');
