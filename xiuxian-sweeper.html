@@ -1,0 +1,3880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>☯ 仙途问道录</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E☯%3C/text%3E%3C/svg%3E">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+  background:radial-gradient(1200px 800px at 18% 8%,#eaf7ff 0%,transparent 60%),
+             radial-gradient(1000px 700px at 88% 92%,#dbefff 0%,transparent 55%),
+             linear-gradient(160deg,#f2faff 0%,#cfe9ff 45%,#a8d4f7 100%);
+  color:#123c66;user-select:none;-webkit-user-select:none;
+}
+#petals{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:15}
+.petal{position:absolute;top:-6vh;animation:fall linear infinite}
+@keyframes fall{
+  0%{transform:translateY(-6vh) translateX(0) rotate(0deg)}
+  100%{transform:translateY(112vh) translateX(60px) rotate(380deg)}
+}
+#app{position:relative;z-index:10;display:flex;flex-direction:column;height:100vh}
+#topbar{height:56px;display:flex;align-items:center;gap:12px;padding:0 14px;flex-shrink:0;
+  background:rgba(255,255,255,.78);backdrop-filter:blur(10px);border-bottom:1px solid rgba(90,150,220,.45);box-shadow:0 2px 12px rgba(60,120,200,.18)}
+.title{font-family:"STKaiti","KaiTi","楷体","FZKai-Z03S","Microsoft YaHei",serif;font-size:21px;font-weight:bold;
+  background:linear-gradient(90deg,#0f63c8,#2aa7ff,#6fd0ff);-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap;letter-spacing:2px;text-shadow:0 1px 0 rgba(255,255,255,.4)}
+.mascot{animation:bounce 1.6s ease-in-out infinite;display:inline-block}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.hud{display:flex;gap:8px;margin-left:6px;flex-wrap:wrap}
+.hud-item{background:rgba(255,255,255,.88);border:1px solid rgba(90,150,220,.5);border-radius:999px;padding:4px 11px;font-size:13px;font-weight:600;white-space:nowrap;color:#1a4a86;box-shadow:0 1px 4px rgba(70,130,210,.18)}
+.hud-item.gold{background:linear-gradient(135deg,#ffe9a8,#ffd166);color:#7a4a00;border-color:#b06a00}
+.hud-item.frozen{background:#5ac8f5;color:#fff;border-color:#2aa7ff}
+.topbtns{margin-left:auto;display:flex;gap:8px;align-items:center}
+button{font-family:inherit;cursor:pointer}
+.topbtns button,.zoom button,.tab{background:rgba(255,255,255,.85);border:1px solid rgba(90,150,220,.55);color:#1a4a86;border-radius:999px;padding:6px 12px;font-size:13px;transition:.15s;box-shadow:0 1px 4px rgba(70,130,210,.15)}
+.topbtns button:hover,.zoom button:hover,.tab:hover{background:#fff;border-color:#2aa7ff;transform:translateY(-1px)}
+.armed-chip{background:linear-gradient(135deg,#2aa7ff,#0f63c8)!important;color:#fff!important;font-weight:bold;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:none!important}
+#stage{position:relative;flex:1;min-height:0;overflow:hidden;background:#d9ecfc}
+canvas#game{position:absolute;inset:0;touch-action:none;cursor:crosshair}
+canvas#fx{position:absolute;inset:0;pointer-events:none}
+#minimapWrap{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.85);border:1px solid rgba(90,150,220,.55);border-radius:12px;padding:6px;backdrop-filter:blur(6px);z-index:20;box-shadow:0 6px 18px rgba(60,120,200,.25)}
+#minimap{display:block;border-radius:8px;cursor:pointer;width:170px;height:170px}
+#mmZoom{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:4px;z-index:5}
+#mmZoom button{width:22px;height:22px;border-radius:8px;background:rgba(255,255,255,.9);border:1px solid rgba(90,150,220,.6);color:#0f63c8;font-size:14px;line-height:1;cursor:pointer;backdrop-filter:blur(3px)}
+#mmZoom button:hover{background:#dcefff}
+.minimap-label{position:absolute;right:10px;bottom:8px;font-size:11px;opacity:.85;pointer-events:none;color:#1a4a86;font-weight:600;background:rgba(255,255,255,.6);border-radius:8px;padding:1px 5px}
+#zoomCtl{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px;z-index:20}
+#zoomCtl button{width:38px;height:38px;font-size:16px;border-radius:10px;background:rgba(255,255,255,.9);border:1px solid rgba(90,150,220,.6);color:#1a4a86;box-shadow:0 2px 8px rgba(60,120,200,.2)}
+#zoomCtl button.wide{width:auto;padding:0 10px;font-size:12px;height:32px}
+#zoomCtl button.active{background:linear-gradient(135deg,#2aa7ff,#0f63c8);border-color:transparent;color:#fff}
+#tip{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-size:11px;color:#1a4a86;background:rgba(255,255,255,.9);border:1px solid rgba(90,150,220,.5);padding:4px 12px;border-radius:999px;z-index:20;white-space:nowrap;pointer-events:none;box-shadow:0 2px 8px rgba(60,120,200,.2)}
+#hotbar{position:absolute;left:50%;bottom:46px;transform:translateX(-50%);display:flex;gap:8px;z-index:22}
+.slot{width:58px;height:58px;border-radius:16px;background:linear-gradient(160deg,rgba(255,255,255,.95),rgba(210,234,255,.9));border:1px solid rgba(90,150,220,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;cursor:pointer;transition:.15s;backdrop-filter:blur(4px);box-shadow:0 4px 12px rgba(60,120,200,.25)}
+.slot:hover{transform:translateY(-3px);border-color:#2aa7ff;box-shadow:0 8px 20px rgba(60,120,200,.35)}
+.slot.active{background:linear-gradient(160deg,rgba(120,200,255,.85),rgba(120,160,255,.85));border-color:#0f63c8;box-shadow:0 0 16px rgba(42,167,255,.6)}
+.slot .s-icon{font-size:23px;line-height:1}
+.slot .s-count{position:absolute;top:3px;right:6px;font-size:10px;color:#b06a00;font-weight:bold}
+.slot .s-key{position:absolute;bottom:2px;left:5px;font-size:9px;color:rgba(26,74,134,.55)}
+.slot .s-name{font-size:9px;color:#1a4a86;margin-top:3px;letter-spacing:.5px}
+.slot.empty{opacity:.5;cursor:default}
+.slot.empty:hover{transform:none;border-color:rgba(90,150,220,.55)}
+.popup-box{width:540px;max-width:94vw;max-height:84vh;display:flex;flex-direction:column;padding:0;overflow:hidden;background:linear-gradient(170deg,#ffffff,#e4f3ff)}
+.popup-head{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid rgba(90,150,220,.35);flex-shrink:0}
+.popup-head h2{font-size:17px;margin:0;background:linear-gradient(90deg,#0f63c8,#2aa7ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+#popupClose{background:rgba(255,255,255,.9);border:1px solid rgba(90,150,220,.6);color:#1a4a86;border-radius:999px;width:30px;height:30px;font-size:14px;line-height:1}
+#popupClose:hover{background:#dcefff}
+#popupBody{flex:1;overflow-y:auto;padding:14px 18px;color:#123c66}
+#popupBody .tabpage.show{display:block}
+#armedHint{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:25;background:rgba(255,255,255,.92);border:1px solid rgba(90,150,220,.6);padding:6px 14px;border-radius:999px;font-size:12px;color:#b06a00;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 2px 8px rgba(60,120,200,.2)}
+#side.collapsed{display:none}
+#reopenSide{position:absolute;top:10px;right:12px;z-index:30;display:none;background:linear-gradient(135deg,#ffd166,#ff9f43);border:none;color:#fff;font-weight:bold;border-radius:999px;padding:8px 14px;font-size:13px;box-shadow:0 4px 14px rgba(60,120,200,.3)}
+#side{width:340px;flex-shrink:0;display:flex;flex-direction:column;background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border-left:1px solid rgba(90,150,220,.4)}
+#tabs{display:flex;gap:4px;padding:10px;border-bottom:1px solid rgba(90,150,220,.3);flex-shrink:0}
+.tab{flex:1;border-radius:10px;font-size:12px;padding:7px 4px}
+.tab.active{background:linear-gradient(135deg,#2aa7ff,#0f63c8);color:#fff;border-color:transparent;font-weight:bold}
+.tabpage{display:none;flex:1;overflow-y:auto;padding:12px}
+.tabpage.active{display:block}
+.tab-hint{font-size:12px;color:#33527f;line-height:1.6;margin-bottom:10px}
+.tab-hint b{color:#0f63c8}
+.item{background:rgba(255,255,255,.85);border:1px solid rgba(90,150,220,.4);border-radius:14px;padding:10px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start}
+.item-icon{font-size:26px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:#eaf4ff;border-radius:12px;flex-shrink:0}
+.item-info{flex:1;min-width:0}
+.item-name{font-weight:bold;font-size:14px}
+.item-name .owned{color:#b06a00;font-size:12px;margin-left:4px}
+.item-desc{font-size:11px;color:#5a7297;line-height:1.45;margin-top:3px}
+.item-cost{font-size:12px;color:#b06a00;margin-top:4px;font-weight:600}
+.item-actions{display:flex;flex-direction:column;gap:6px}
+.item-actions button{border-radius:10px;padding:6px 10px;font-size:12px;border:none;font-weight:bold}
+.btn-buy{background:linear-gradient(135deg,#ffd166,#ffb347);color:#4a2c00}
+.btn-use{background:linear-gradient(135deg,#58c7f0,#2bc4b8);color:#04211f}
+button:disabled{filter:grayscale(.8);opacity:.45;cursor:not-allowed}
+#collGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.coll-card{background:rgba(255,255,255,.9);border:1px solid rgba(90,150,220,.4);border-radius:12px;padding:8px;text-align:center;min-height:88px}
+.coll-card.found{background:linear-gradient(160deg,rgba(255,230,150,.85),rgba(170,215,255,.9));border-color:rgba(255,180,60,.7)}
+.coll-icon{font-size:24px}
+.coll-name{font-size:12px;font-weight:bold;margin-top:2px}
+.coll-desc{font-size:10px;color:#5a7297;margin-top:2px;line-height:1.3}
+.coll-card .unknown{color:#8aa3c2;font-size:22px;margin-top:6px}
+.coll-count{font-size:12px;color:#b06a00;margin-bottom:8px;font-weight:600}
+#infoList{font-size:12px;line-height:1.9;color:#33527f}
+#infoList b{color:#0f63c8}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px dashed rgba(90,150,220,.35);font-size:13px}
+.set-row button{background:linear-gradient(135deg,#2aa7ff,#0f63c8);border:none;color:#fff;border-radius:10px;padding:7px 12px;font-size:12px;font-weight:bold}
+.set-row button.danger{background:linear-gradient(135deg,#ff5c8a,#c0392b)}
+#flash{position:fixed;inset:0;background:#ff3355;opacity:0;pointer-events:none;z-index:60;transition:opacity .25s}
+#toasts{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:85;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+.toast{background:linear-gradient(135deg,#ffffff,#d9efff);border:1px solid rgba(42,167,255,.65);color:#123c66;padding:8px 18px;border-radius:999px;font-size:13px;font-weight:bold;box-shadow:0 4px 16px rgba(60,120,200,.35);transition:opacity .6s;white-space:nowrap;animation:toastIn .3s ease-out}
+@keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.modal{position:fixed;inset:0;background:rgba(40,90,160,.35);backdrop-filter:blur(4px);z-index:80;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .2s}
+.modal.hidden{opacity:0;pointer-events:none}
+.modal-box{background:linear-gradient(165deg,#ffffff,#dcefff);border:1px solid rgba(90,150,220,.6);border-radius:20px;padding:24px;max-width:430px;width:92%;text-align:center;box-shadow:0 20px 60px rgba(40,100,180,.4);max-height:88vh;overflow-y:auto;color:#123c66}
+.modal-box h2{font-size:18px;margin-bottom:10px;background:linear-gradient(90deg,#0f63c8,#2aa7ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.modal-box p{font-size:13px;line-height:1.7;color:#27466f;text-align:left;margin-bottom:8px}
+.modal-box .big{font-size:38px;margin:8px 0;text-align:center}
+.modal-box button{margin-top:14px;background:linear-gradient(135deg,#2aa7ff,#0f63c8);border:none;color:#fff;font-weight:bold;border-radius:999px;padding:10px 26px;font-size:14px}
+#loadScreen{position:fixed;inset:0;background:linear-gradient(160deg,#eaf6ff,#9ccdf3);z-index:100;display:flex;align-items:center;justify-content:center}
+.load-box{text-align:center;width:340px}
+.load-title{font-size:16px;margin-bottom:18px;font-family:"STKaiti","KaiTi","楷体",serif;color:#0f4a8a}
+#loadBarWrap{height:14px;background:rgba(255,255,255,.8);border-radius:999px;overflow:hidden;border:1px solid rgba(90,150,220,.5)}
+#loadBar{height:100%;width:0%;background:linear-gradient(90deg,#2aa7ff,#0f63c8);transition:width .2s;border-radius:999px}
+#loadText{margin-top:10px;font-size:12px;color:#27466f}
+@media (max-width:900px){ #side{width:300px} .title{font-size:15px} .hud-item{font-size:11px;padding:3px 8px} }
+</style>
+</head>
+<body>
+<div id="petals"></div>
+<div id="app">
+  <header id="topbar">
+    <div class="title">☯ 仙途问道录 <span class="mascot">🦊</span></div>
+    <div class="hud">
+      <div class="hud-item gold" id="hudGold">💰 0</div>
+      <div class="hud-item" id="hudRate">💎 0/s</div>
+      <div class="hud-item" id="hudSum">Σ 0</div>
+      <div class="hud-item" id="hudHits">💥 0</div>
+      <div class="hud-item" id="hudMult">×1.00</div>
+      <div class="hud-item frozen" id="hudFrozen" style="display:none">⏸</div>
+      <div class="hud-item" id="hudBoost" style="display:none;background:linear-gradient(135deg,#ffd166,#ffb347);color:#4a2c00">⏳</div>
+      <div class="hud-item" id="hudEvent" style="display:none;background:linear-gradient(135deg,#4aa8ff,#0f63c8);color:#fff">🌫️</div>
+      <div class="hud-item" id="hudSeason" style="display:none;background:linear-gradient(135deg,#69db7c,#74c0fc);color:#123">🌿</div>
+      <div class="hud-item" id="hudTitle" style="display:none;background:linear-gradient(135deg,#ffd166,#ff9f43);color:#4a2c00">🏅</div>
+    </div>
+    <div class="topbtns">
+      <button id="armedChip" class="armed-chip" style="display:none"></button>
+      <button id="btnShop" title="坊市">🏪</button>
+      <button id="btnColl" title="灵宝">💎</button>
+      <button id="btnDungeons" title="秘境名录">🏰</button>
+      <button id="btnInfo" title="天机">📊</button>
+      <button id="btnSet" title="设置">⚙️</button>
+    </div>
+  </header>
+  <div id="stage">
+    <canvas id="game"></canvas>
+    <canvas id="fx"></canvas>
+    <div id="armedHint"></div>
+    <div id="hotbar"></div>
+    <div id="minimapWrap"><canvas id="minimap"></canvas><div class="minimap-label">🗺️ 闪烁✨=灵宝</div>
+      <div id="mmZoom"><button id="mmIn" title="放大">＋</button><button id="mmOut" title="缩小">－</button></div>
+    </div>
+    <div id="zoomCtl">
+      <button id="zoomIn" title="放大">＋</button>
+      <button id="zoomOut" title="缩小">－</button>
+      <button class="wide" id="flagBtn" title="旗子模式（触屏插旗）">🚩</button>
+      <button class="wide" id="btnCenter" title="回到中心">◎</button>
+      <button class="wide" id="btnFit" title="查看全图">⛶</button>
+    </div>
+    <div id="tip">左键翻开 · 右键插旗 · 滚轮缩放 · 拖动平移 · 1/2/3 快捷道具</div>
+  </div>
+</div>
+<div id="popup" class="modal hidden"><div class="modal-box popup-box">
+  <div class="popup-head"><h2 id="popupTitle"></h2><button id="popupClose" title="关闭">✕</button></div>
+  <div id="popupBody">
+    <div id="tab-shop" class="tabpage">
+      <p class="tab-hint">闭关收益 = 已翻开格子的<b>数字总和</b>/秒（数字越大收益越高）。用灵石购买道具，向禁制区深处探索吧！</p>
+      <div id="shopList"></div>
+    </div>
+    <div id="tab-coll" class="tabpage">
+      <p class="tab-hint">灵宝被 <b>8颗禁制</b> 包围，随机散落在远方。小地图上的 <b>✨闪烁</b> 就是它们的踪迹！翻开后获得逆天功效。</p>
+      <div id="collCount" class="coll-count"></div>
+      <div id="collGrid"></div>
+    </div>
+    <div id="tab-info" class="tabpage"><div id="infoList"></div></div>
+    <div id="tab-dungeons" class="tabpage">
+      <p class="tab-hint">九州仙域上散落着多座秘境入口（遁移阵）。<b>探明遁移阵</b>即可加入秘境名录；通关每座秘境可获得一件<b>限定稀有道具</b>！</p>
+      <div id="rareList" class="coll-count"></div>
+      <div id="dungeonList"></div>
+    </div>
+    <div id="tab-set" class="tabpage">
+      <div class="set-row"><span>🔊 音效</span><button id="soundBtn">开</button></div>
+      <div class="set-row"><span>🎵 背景音乐</span><button id="musicBtn">关</button></div>
+      <div class="set-row"><span>🎚️ 音乐音量</span><input id="musicVol" type="range" min="0" max="100" value="45" style="width:130px"></div>
+      <div class="set-row"><span>💾 立即保存</span><button id="saveBtn">保存</button></div>
+      <div class="set-row"><span>📖 玩法说明</span><button id="help2Btn">查看</button></div>
+      <div class="set-row"><span>🌸 轮回（清空进度，重新随机九州）</span><button class="danger" id="resetBtn">轮回</button></div>
+    </div>
+  </div>
+</div></div>
+<div id="flash"></div>
+<div id="toasts"></div>
+<div id="popup" class="modal hidden"><div class="modal-box popup-box">
+  <div class="popup-head"><h2 id="popupTitle"></h2><button id="popupClose" title="关闭">✕</button></div>
+  <div id="popupBody"></div>
+</div></div>
+<div id="modal" class="modal hidden"><div class="modal-box" id="modalBox">
+  <h2 id="modalTitle"></h2><div id="modalBody"></div>
+  <button id="modalBtn">好的！</button>
+</div></div>
+<div id="loadScreen">
+  <div class="load-box">
+    <div class="load-title">☯ 正在开辟九州山河…</div>
+    <div id="loadBarWrap"><div id="loadBar"></div></div>
+    <div id="loadText">0%</div>
+  </div>
+</div>
+<script>
+'use strict';
+/* ================================================================
+   ☯ 仙途问道录 — 核心逻辑（可被 node 测试）
+   ================================================================ */
+const W = 2048, H = 2048, N = W * H;
+const COLLECT_COUNT = 12;
+const PROBE_R = 6, BLAST_R = 5, MINER_HALF = 2;
+const SAVE_KEY = 'sweeper_anime_v1';
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function idx(x,y){return y*W+x;}
+function inB(x,y){return x>=0&&y>=0&&x<W&&y<H;}
+function clamp(v,a,b){return v<a?a:(v>b?b:v);}
+const DIRS4=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+/* 禁制密度：越靠近中心越少，越远离越多（边缘高达60% → 大量5/6/7/8） */
+function density(r){return 0.04+0.56*Math.pow(r,1.5);}
+function fmt(n){if(!isFinite(n))return'∞';const u=[[1e15,'P'],[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e4,'k']];for(const [v,s] of u){if(n>=v)return(n/v).toFixed(2).replace(/\.0+$/,'')+s;}return ''+Math.floor(n);}
+function fmtDur(sec){sec=Math.floor(sec);const h=(sec/3600)|0,m=((sec%3600)/60)|0,s=sec%60;if(h)return h+'小时'+m+'分';if(m)return m+'分'+s+'秒';return s+'秒';}
+
+/* ---------- 灵宝效果（逆天功效） ---------- */
+const EFFECTS=[
+ {id:0 ,name:'太虚星瞳',icon:'✨' ,desc:'永久灵气 ×2',permanent:true ,apply:s=>{s.mult*=2;}},
+ {id:1 ,name:'天机罗盘',icon:'🔭',desc:'探灵范围 +3（永久）',permanent:true ,apply:s=>{s.bonus.probeR+=3;}},
+ {id:2 ,name:'玄龟护符',icon:'🌸',desc:'触发禁制的损失 -50%（永久）',permanent:true ,apply:s=>{s.bonus.hitLoss*=0.5;}},
+ {id:3 ,name:'紫霄神符',icon:'⚡',desc:'破禁范围 +3（永久）',permanent:true ,apply:s=>{s.bonus.blastR+=3;}},
+ {id:4 ,name:'无量灵石',icon:'💎',desc:'立刻获得 当前灵气×3600 的灵石',permanent:false,apply:s=>{s.gold+=Math.floor(rate()*3600);}},
+ {id:5 ,name:'天眼通',icon:'👁️',desc:'看破全图所有禁制的位置（不会触发）',permanent:false,apply:s=>{revealAllMines();}},
+ {id:6 ,name:'破妄法目',icon:'👁️',desc:'立即照亮以自身为中心半径40的领域',permanent:false,apply:(s,c)=>{revealCircle(c.x,c.y,40);}},
+ {id:7 ,name:'岁月珠',icon:'⏳',desc:'离线闭关收益 ×5（永久）',permanent:true ,apply:s=>{s.offlineMult*=5;}},
+ {id:8 ,name:'因果珠',icon:'🎲',desc:'触发禁制时 50% 概率免于扣灵石（永久）',permanent:true ,apply:s=>{s.bonus.dodge=0.5;}},
+ {id:9 ,name:'云梭',icon:'🚀',desc:'灵傀速度 ×1.5（永久）',permanent:true ,apply:s=>{s.bonus.minerSpeed*=1.5;}},
+ {id:10,name:'混元一气',icon:'🌌',desc:'永久灵气 ×3',permanent:true ,apply:s=>{s.mult*=3;}},
+ {id:11,name:'福泽仙缘',icon:'🌺',desc:'灵傀牺牲时返还 50% 造价',permanent:true ,apply:s=>{s.bonus.minerRefund=0.5;}},
+];
+
+/* ---------- 全局状态 ---------- */
+const S={
+  seed:0,rng:null,
+  mineMap:null,numMap:null,revMap:null,flagMap:null,craterMap:null,collMap:null,terrainMap:null,colls:[],
+  lakeData:[],lakeBlessed:0,
+  revealedSum:0,gold:500,mult:1,cat:0,offlineMult:1,
+  bonus:{probeR:0,blastR:0,hitLoss:1,dodge:0,minerSpeed:1,minerRefund:0},
+  items:{probe:0,blast:0,miner:0,shield:0,hourglass:0,teleport:0,autoprobe:0},
+  stats:{revealedCount:0,hits:0,collected:0,minerLost:0,minerRetired:0,timeSec:0,shieldBlocks:0,dungeonWins:0},
+  frozen:0,miners:[],armed:null,pendingMinerCost:0,
+  treasureMap:false,
+  stardust:0,starUpgrades:{income:0,miner:0,probeR:0,blastR:0,offline:0,shield:0},
+  achievements:[],rebirths:0,milestones:0,
+  shield:0,boost:0,boostMult:2,autoProbe:null,
+  worldItems:{anchor:0,foil:0},foil:null,
+  heroSword:false,
+  dungeons:[],dungeonsDiscovered:[],
+  rareItems:{sword:false,frost:false,flame:false,void:false,bone:false},
+  hotbar:['probe','blast','miner','cat','treasure','shield','hourglass','teleport'],
+  event:null,
+  season:0,seasonT:0,
+  eventsSeen:[],bossesKilled:0,questIdx:0,
+  musicOn:false,musicVol:0.45,
+};
+
+function lakeBlessCount(){
+  let n=0;
+  for(let i=0;i<5;i++)if(S.lakeBlessed&(1<<i))n++;
+  return n;
+}
+function rate(){
+  let r=S.revealedSum*S.mult*(1+0.25*S.cat)*(1+0.10*S.starUpgrades.income)*(1+0.10*lakeBlessCount())*rareIncomeMult()*eventMult();
+  if(S.boost>0)r*=S.boostMult;
+  return r;
+}
+function probeRadius(){return PROBE_R+S.bonus.probeR+S.starUpgrades.probeR;}
+function blastRadius(){return BLAST_R+S.bonus.blastR+S.starUpgrades.blastR;}
+function costProbe(){return Math.round(100*Math.pow(1.35,S.items.probe));}
+function costBlast(){return Math.round(1000*Math.pow(1.5,S.items.blast));}
+function costMiner(){return Math.round(3000*Math.pow(1.6,S.items.miner));}
+function costCat(){return Math.round(500*Math.pow(2,S.cat));}
+function costTreasure(){return 8000;} /* 寻宝罗盘：一次性永久购买 */
+function costShield(){return Math.round(1500*Math.pow(1.4,S.items.shield));}
+function costHourglass(){return Math.round(800*Math.pow(1.5,S.items.hourglass));}
+function costTeleport(){return Math.round(2000*Math.pow(1.6,S.items.teleport));}
+const COST_AUTOPROBE=5000;
+const COST_HERO_SWORD=50000; /* 斩魔仙剑：揭示魔宗禁地方位 */
+const COST_ANCHOR=120000;   /* 定界碑：先天灵宝，购买数量 1 */
+const COST_FOIL=1200000;    /* 开天符：先天灵宝，购买数量 1 */
+const FOIL_SPEED=10;        /* 开天符：每秒向外清空 10 格 */
+/* ---------- 道韵强化 ---------- */
+const STAR_DEFS={
+  income:{name:'灵气强化',icon:'💰',desc:'灵气 +10%/级',base:5},
+  miner:{name:'灵傀加速',icon:'🤖',desc:'灵傀速度 +10%/级',base:8},
+  probeR:{name:'探测扩展',icon:'🔭',desc:'探测半径 +1/级',base:12},
+  blastR:{name:'爆破扩展',icon:'💥',desc:'爆破半径 +1/级',base:15},
+  offline:{name:'离线增幅',icon:'⏳',desc:'离线收益 +10%/级',base:6},
+  shield:{name:'抗禁制强化',icon:'🛡️',desc:'触发禁制损失 -10%/级',base:10},
+};
+function starCost(k){return Math.round(STAR_DEFS[k].base*Math.pow(1.6,S.starUpgrades[k]));}
+
+/* ---------- 地图生成 ---------- */
+function scatterMine(i){
+  const x=i%W,y=(i/W)|0;
+  for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+    if(!ox&&!oy)continue;
+    const nx=x+ox,ny=y+oy;
+    if(nx<0||ny<0||nx>=W||ny>=H)continue;
+    const j=ny*W+nx;
+    if(S.numMap[j]<8)S.numMap[j]++;
+  }
+}
+function placeCollectibles(rng,cx,cy,maxR){
+  let attempts=0;
+  while(S.colls.length<COLLECT_COUNT&&attempts<COLLECT_COUNT*6000){
+    attempts++;
+    const x=1+((rng()*(W-2))|0),y=1+((rng()*(H-2))|0);
+    if(Math.hypot(x-cx,y-cy)/maxR<0.3)continue;
+    let ok=true;
+    outer:
+    for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+      const j=(y+oy)*W+(x+ox);
+      if(S.mineMap[j]||S.collMap[j]||S.terrainMap[j]){ok=false;break outer;}
+    }
+    if(!ok)continue;
+    const cid=S.colls.length+1;
+    for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+      if(!ox&&!oy)continue;
+      const j=(y+oy)*W+(x+ox);
+      S.mineMap[j]=1;scatterMine(j);
+    }
+    S.collMap[y*W+x]=cid;
+    S.colls.push({x,y,cid,effectId:(rng()*EFFECTS.length)|0,collected:false});
+  }
+}
+/* ---------- 世界地形（灵泉/业火窟/魔宗禁地/九州天壁） ---------- */
+const TERRAIN={NONE:0,LAKE:1,VOLCANO:2,WALL:3,CASTLE:4,PORTAL:5};
+function markTerrain(i,t){S.terrainMap[i]=t;S.mineMap[i]=0;}
+function isSolid(i){const t=S.terrainMap[i];return t===1||t===2||t===3;}
+let blobSeen=null;
+/* 从中心生长出不规则连通块 */
+function growBlob(rng,cx,cy,target,t){
+  cx=Math.max(2,Math.min(W-3,cx));
+  cy=Math.max(2,Math.min(H-3,cy));
+  if(!blobSeen)blobSeen=new Uint8Array(N);
+  const cells=[[cx,cy]];
+  const si=idx(cx,cy);
+  blobSeen[si]=1;markTerrain(si,t);
+  let guard=0;
+  while(cells.length<target&&guard<target*60){
+    guard++;
+    const [fx,fy]=cells[(rng()*cells.length)|0];
+    const d=DIRS4[(rng()*DIRS4.length)|0];
+    const nx=fx+d[0],ny=fy+d[1];
+    if(!inB(nx,ny))continue;
+    const j=idx(nx,ny);
+    if(!blobSeen[j]&&S.terrainMap[j]===0){
+      blobSeen[j]=1;markTerrain(j,t);
+      cells.push([nx,ny]);
+    }
+  }
+  for(let k=0;k<cells.length;k++)blobSeen[idx(cells[k][0],cells[k][1])]=0;
+  return cells;
+}
+function distToTerrain(x,y,terr){
+  /* 快速近似：检查 25×25 范围内是否有所需地形 */
+  for(let oy=-12;oy<=12;oy++)for(let ox=-12;ox<=12;ox++){
+    const nx=x+ox,ny=y+oy;
+    if(!inB(nx,ny))continue;
+    if(S.terrainMap[idx(nx,ny)]===terr)return Math.max(Math.abs(ox),Math.abs(oy));
+  }
+  return 99;
+}
+function placeLakes(rng,cx,cy,maxR){
+  const half=Math.min(cx,cy);
+  const lakeCount=5+(S.rebirths>=4?2:0); /* 轮回解锁：更多灵泉 */
+  const tries=200;
+  for(let l=0;l<lakeCount;l++){
+    let okCenter=false,lcx=0,lcy=0;
+    for(let t=0;t<tries&&!okCenter;t++){
+      const ang=rng()*Math.PI*2;
+      const r=half*(0.35+rng()*0.5);
+      lcx=cx+Math.cos(ang)*r;lcy=cy+Math.sin(ang)*r;
+      okCenter=distToTerrain(lcx,lcy,TERRAIN.LAKE)>=30&&distToTerrain(lcx,lcy,TERRAIN.VOLCANO)>=30&&distToTerrain(lcx,lcy,TERRAIN.CASTLE)>=30;
+    }
+    if(!okCenter)continue;
+    const size=250+((rng()*1700)|0); /* 大大小小 */
+    const cells=growBlob(rng,Math.round(lcx),Math.round(lcy),size,TERRAIN.LAKE);
+    /* 计算周围 3 层环形格（用于泉灵仙子赐福） */
+    const ringSet=new Uint8Array(N);
+    const ring=[];
+    for(const [x,y] of cells){
+      for(let oy=-3;oy<=3;oy++)for(let ox=-3;ox<=3;ox++){
+        const nx=x+ox,ny=y+oy;
+        if(!inB(nx,ny))continue;
+        const j=idx(nx,ny);
+        if(S.terrainMap[j]===TERRAIN.LAKE)continue;
+        if(!ringSet[j]){ringSet[j]=1;ring.push(j);}
+      }
+    }
+    S.lakeData.push({cells,ring,lv:0});
+  }
+  /* 按面积从大到小赋 Lv.1-5 */
+  S.lakeData.sort((a,b)=>b.cells.length-a.cells.length);
+  S.lakeData.forEach((lk,i)=>lk.lv=Math.min(5,i+1));
+}
+function placeVolcano(rng,cx,cy,maxR){
+  const half=Math.min(cx,cy);
+  let vx=0,vy=0,ok=false;
+  for(let t=0;t<200&&!ok;t++){
+    const ang=rng()*Math.PI*2;
+    const r=half*(0.62+rng()*0.26);
+    vx=cx+Math.cos(ang)*r;vy=cy+Math.sin(ang)*r;
+    ok=distToTerrain(vx,vy,TERRAIN.LAKE)>=30&&distToTerrain(vx,vy,TERRAIN.VOLCANO)>=30&&distToTerrain(vx,vy,TERRAIN.CASTLE)>=30;
+  }
+  if(ok)growBlob(rng,Math.round(vx),Math.round(vy),40+((rng()*30)|0),TERRAIN.VOLCANO);
+}
+function placeCastle(rng,cx,cy,maxR){
+  const half=Math.min(cx,cy);
+  let ccx=0,ccy=0,ok=false;
+  for(let t=0;t<200&&!ok;t++){
+    const ang=rng()*Math.PI*2;
+    const r=half*(0.84+rng()*0.09);
+    ccx=cx+Math.cos(ang)*r;ccy=cy+Math.sin(ang)*r;
+    ok=distToTerrain(ccx,ccy,TERRAIN.LAKE)>=40&&distToTerrain(ccx,ccy,TERRAIN.VOLCANO)>=40;
+  }
+  if(!ok)return;
+  const cells=growBlob(rng,Math.round(ccx),Math.round(ccy),3000,TERRAIN.CASTLE);
+  /* 秘境遁移阵：洞府中心 */
+  let pxc=0,pyc=0,pd=Infinity;
+  for(const [x,y] of cells){
+    const d=(x-ccx)*(x-ccx)+(y-ccy)*(y-ccy);
+    if(d<pd){pd=d;pxc=x;pyc=y;}
+  }
+  S.terrainMap[idx(pxc,pyc)]=TERRAIN.PORTAL;
+  S.castlePortal={x:pxc,y:pyc};
+  /* 五行禁制大阵包围（洞府外侧一圈） */
+  const moatSet=new Uint8Array(N);
+  for(const [x,y] of cells){
+    for(let oy=-5;oy<=5;oy++)for(let ox=-5;ox<=5;ox++){
+      if(Math.max(Math.abs(ox),Math.abs(oy))>5)continue;
+      const nx=x+ox,ny=y+oy;
+      if(!inB(nx,ny))continue;
+      const j=idx(nx,ny);
+      if(S.terrainMap[j]!==TERRAIN.NONE)continue;
+      if(S.terrainMap[j]===TERRAIN.NONE&&!moatSet[j]){
+        moatSet[j]=1;S.mineMap[j]=1;
+      }
+    }
+  }
+  /* 唯一入口：朝向地图中心的方向开辟通路 */
+  const dx=ccx-cx,dy=ccy-cy;const L=Math.hypot(dx,dy)||1;
+  const ux=dx/L,uy=dy/L;
+  for(let k=1;k<=8;k++){
+    const px=Math.round(ccx-ux*k),py=Math.round(ccy-uy*k);
+    for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+      const nx=px+ox,ny=py+oy;
+      if(inB(nx,ny)){const j=idx(nx,ny);S.mineMap[j]=0;}
+    }
+  }
+}
+function placeWall(cx,cy,maxR){
+  const R=Math.min(cx,cy)*0.94; /* 以半宽为基准，保证整环都在地图内 */
+  const r0=R-2.2,r1=R+2.2,r0q=r0*r0,r1q=r1*r1;
+  const xmin=Math.max(0,Math.round(cx-r1)),xmax=Math.min(W-1,Math.round(cx+r1));
+  const ymin=Math.max(0,Math.round(cy-r1)),ymax=Math.min(H-1,Math.round(cy+r1));
+  for(let y=ymin;y<=ymax;y++){
+    const dy=y-cy,dy2=dy*dy;
+    const row=y*W;
+    for(let x=xmin;x<=xmax;x++){
+      const dx=x-cx;
+      const r2=dx*dx+dy2;
+      if(r2>r1q||r2<r0q)continue;
+      if(S.terrainMap[row+x]!==TERRAIN.NONE)continue;
+      const ax=dx<0?-dx:dx,ay=dy<0?-dy:dy;
+      if(Math.abs(ax-ay)<300)continue; /* 四座对角之门 */
+      markTerrain(row+x,TERRAIN.WALL);
+    }
+  }
+}
+function placeTerrain(rng,cx,cy,maxR){
+  S.lakeData=[];
+  placeLakes(rng,cx,cy,maxR);
+  placeVolcano(rng,cx,cy,maxR);
+  placeCastle(rng,cx,cy,maxR);
+  placeWall(cx,cy,maxR);
+  placeExtraDungeons(rng,cx,cy,maxR);
+}
+
+/* ---------- 秘境（洞天）定义与生成 ---------- */
+const DUNGEON_DEFS=[
+ {id:0,name:'魔宗禁地',icon:'🏰',floors:5,rare:'sword',base:1,desc:'魔渊的终点，魔尊盘踞于此，被五行禁制大阵环绕。'},
+ {id:1,name:'寒霜洞窟',icon:'❄️',floors:3,rare:'frost',base:0,desc:'万载不化的洞窟，霜龙守护着泪晶。'},
+ {id:2,name:'焚炎窟',icon:'🔥',floors:3,rare:'flame',base:1,desc:'地火翻涌的上古炼狱。'},
+ {id:3,name:'虚空裂隙',icon:'🌌',floors:4,rare:'void',base:2,desc:'连通无尽虚空的裂缝，妖兽格外凶悍。'},
+ {id:4,name:'幽冥墓府',icon:'💀',floors:3,rare:'bone',base:1,desc:'上古大能的安息之地。'},
+];
+const RARE_DEFS={
+ sword:{name:'青云仙剑',icon:'🗡️',desc:'永久灵气 ×2'},
+ frost:{name:'冰魄灵珠',icon:'❄️',desc:'永久灵气 +50%'},
+ flame:{name:'火灵珠',icon:'🔥',desc:'触发禁制损失 -30%'},
+ void:{name:'虚空石',icon:'🌌',desc:'永久灵气 ×2'},
+ bone:{name:'幽冥戒',icon:'💀',desc:'灵傀速度 +25%'},
+};
+/* 额外 4 个秘境入口（小型洞府结构 + 遁移阵） */
+function placeExtraDungeons(rng,cx,cy,maxR){
+  const half=Math.min(cx,cy);
+  S.dungeons=DUNGEON_DEFS.map(d=>({id:d.id,name:d.name,icon:d.icon,floors:d.floors,rare:d.rare,base:d.base,px:-1,py:-1}));
+  if(S.castlePortal){S.dungeons[0].px=S.castlePortal.x;S.dungeons[0].py=S.castlePortal.y;}
+  for(let k=1;k<DUNGEON_DEFS.length;k++){
+    let dx=0,dy=0,ok=false;
+    for(let t=0;t<150&&!ok;t++){
+      const ang=rng()*Math.PI*2;
+      const r=half*(0.55+rng()*0.37);
+      dx=cx+Math.cos(ang)*r;dy=cy+Math.sin(ang)*r;
+      ok=distToTerrain(dx,dy,TERRAIN.LAKE)>=36&&distToTerrain(dx,dy,TERRAIN.VOLCANO)>=36&&distToTerrain(dx,dy,TERRAIN.CASTLE)>=36&&distToTerrain(dx,dy,TERRAIN.WALL)>=36;
+    }
+    if(!ok)continue;
+    const cells=growBlob(rng,Math.round(dx),Math.round(dy),650+((rng()*700)|0),TERRAIN.CASTLE);
+    let pxc=dx,pyc=dy,pd=Infinity;
+    for(const [x,y] of cells){
+      const dd=(x-dx)*(x-dx)+(y-dy)*(y-dy);
+      if(dd<pd){pd=dd;pxc=x;pyc=y;}
+    }
+    S.terrainMap[idx(pxc,pyc)]=TERRAIN.PORTAL;
+    S.dungeons[k].px=pxc;S.dungeons[k].py=pyc;
+  }
+  /* 未成功生成的秘境从列表中移除（保证可用） */
+  S.dungeons=S.dungeons.filter(d=>d.px>=0);
+}
+function dungeonIdAtPortal(i){
+  for(let k=0;k<S.dungeons.length;k++){
+    const d=S.dungeons[k];
+    if(d.px>=0&&idx(d.px,d.py)===i)return k;
+  }
+  return 0;
+}
+/* ---------- 稀有道具加成 ---------- */
+function rareIncomeMult(){
+  let m=1;
+  if(S.rareItems.sword)m*=2;
+  if(S.rareItems.frost)m*=1.5;
+  if(S.rareItems.void)m*=2;
+  return m;
+}
+function rareHitMult(){return S.rareItems.flame?0.7:1;}
+function rareMinerMult(){return S.rareItems.bone?1.25:1;}
+/* ---------- 九州天象（迷雾/夜幕/天狗食日/皓月当空） ---------- */
+const EVENTS={
+  fog:{name:'灵雾封山',icon:'🌫️',mult:0.5,top:'rgba(235,245,255,.8)',petal:'💧',dur:70000,weight:30,music:'fog'},
+  night:{name:'夜月清辉',icon:'🌙',mult:1,top:'rgba(90,130,210,.6)',petal:'✨',dur:80000,weight:30,music:'night'},
+  solar:{name:'天狗食日',icon:'🌑',mult:1.5,top:'rgba(255,205,130,.75)',petal:'🌟',dur:60000,weight:20,music:'solar'},
+  lunar:{name:'皓月当空',icon:'🌕',mult:2,top:'rgba(205,230,255,.92)',petal:'🌙',dur:50000,weight:20,music:'lunar'},
+  thunder:{name:'天劫',icon:'⛈️',mult:1.5,top:'rgba(70,80,170,.6)',petal:'⚡',dur:60000,weight:0,music:'solar'},
+};
+/* 轮回解锁一览 */
+const REBIRTH_UNLOCKS=[
+ {at:1,desc:'野外妖王的战利品更加丰厚'},
+ {at:2,desc:'新天象异动「天劫」降临（灵气×1.5）'},
+ {at:3,desc:'洞天灵石奖励随轮回次数增长'},
+ {at:4,desc:'大陆上多出 2 座灵泉'},
+ {at:5,desc:'天劫中 30% 概率触发禁制不扣钱'},
+];
+function eventMult(){return S.event?EVENTS[S.event.type].mult:1;}
+function pickEvent(){
+  const keys=Object.keys(EVENTS);
+  let total=0;
+  for(const k of keys){
+    const w=EVENTS[k].weight+(k==='thunder'&&S.rebirths>=2?22:0);
+    total+=w;
+  }
+  let r=Math.random()*total;
+  for(const k of keys){
+    const w=EVENTS[k].weight+(k==='thunder'&&S.rebirths>=2?22:0);
+    r-=w;
+    if(r<=0)return k;
+  }
+  return 'fog';
+}
+/* ---------- 季节更替 ---------- */
+const SEASONS=[
+ {name:'春',icon:'🌿',tint:'rgba(120,220,150,0.06)',petal:'🌸'},
+ {name:'夏',icon:'☀️',tint:'rgba(255,230,120,0.06)',petal:'🍃'},
+ {name:'秋',icon:'🍂',tint:'rgba(255,170,80,0.08)',petal:'🍁'},
+ {name:'冬',icon:'❄️',tint:'rgba(170,210,255,0.08)',petal:'❄️'},
+];
+function seasonInfo(){return SEASONS[S.season%4];}
+function seasonTick(){
+  if(Date.now()-S.seasonT>480000){S.season=(S.season+1)%4;S.seasonT=Date.now();refreshHUD();}
+}
+/* ---------- 主线任务链 ---------- */
+const QUESTS=[
+ {id:0,name:'启程',story:'九州仙域在你的脚下铺开。禁制海深处藏着无数秘密——先从脚下开始吧。',obj:'翻开 300 格',cond:s=>s.stats.revealedCount>=300,gold:500},
+ {id:1,name:'禁制海初涉',story:'人们说越往外禁制越密，但数字也越大。准备好你的工具，向深处迈出第一步。',obj:'购买 1 个探灵符并使用',cond:s=>s.items.probe>=1||s.stats.revealedCount>=2000,gold:1000},
+ {id:2,name:'初得灵宝',story:'古老的玉简提到：被八道禁制环绕的灵宝，蕴含扭转命运的大道气运。',obj:'收取 1 件灵宝',cond:s=>s.stats.collected>=1,gold:3000},
+ {id:3,name:'泉心低语',story:'五座灵泉静静卧于九州。渔翁们说，将泉周完全点亮，能聆听泉灵仙子的仙音。',obj:'获得 1 次泉灵仙子赐福',cond:s=>lakeBlessCount()>=1,gold:8000},
+ {id:4,name:'御剑问道',story:'炼器阁的器师收下你的灵石，为你祭炼出一柄能感应魔气、斩妖除魔的飞剑。',obj:'求购斩魔仙剑',cond:s=>s.heroSword,gold:15000},
+ {id:5,name:'秘境探幽',story:'寒气自洞天深处渗出。传说霜龙之泪凝成的灵珠，可令道行财缘永不冻结。',obj:'通关任意一座秘境（镇杀首领）',cond:s=>s.stats.dungeonWins>=1,gold:30000,star:10},
+ {id:6,name:'魔尊剿灭',story:'你已直面过魔渊的爪牙。现在，穿过五行禁制大阵，让魔尊见识你的剑。',obj:'通关魔宗禁地洞天',cond:s=>s.stats.dungeonWins>=1&&s.rareItems.sword,gold:50000,star:30},
+ {id:7,name:'九州之秘',story:'九州尚有未解之谜：业火窟会苏醒，天劫会罚世。揭示五成以上的九州山河吧。',obj:'揭示率达到 50%',cond:s=>s.stats.revealedCount/N>=0.5,gold:100000,star:100},
+];
+function questTitle(){return S.questIdx<QUESTS.length?QUESTS[S.questIdx].name:'已通关全部主线';}
+function checkQuests(){
+  if(S.questIdx>=QUESTS.length)return;
+  const q=QUESTS[S.questIdx];
+  if(q.cond(S)){
+    let txt=q.gold?'+'+fmt(q.gold)+'💰':'';
+    if(q.star){S.stardust+=q.star;txt+=' +'+q.star+'✨';}
+    if(q.gold)S.gold+=q.gold;
+    S.questIdx++;
+    FX.toast('📜 主线完成：「'+q.name+'」 '+txt);
+    FX.quest(q,txt);
+    refreshHUD();saveSoon();
+  }
+}
+function nextQuestHtml(){
+  if(S.questIdx>=QUESTS.length)return '<p style="color:#b06a00">—— 主线全通！九州的历史由你书写 ——</p>';
+  const q=QUESTS[S.questIdx];
+  return '<p style="color:#33527f">下一章 ·「'+q.name+'」：'+q.obj+'</p>';
+}
+/* ---------- 称号（按冒险事迹自动升级） ---------- */
+function unlockSummary(){
+  const got=REBIRTH_UNLOCKS.filter(u=>S.rebirths>=u.at);
+  const next=REBIRTH_UNLOCKS.find(u=>S.rebirths<u.at);
+  const gotTxt=got.length?got.map(u=>'✅ 第'+u.at+'世：'+u.desc).join('<br>')+'<br>':'';
+  const nextTxt=next?'🔒 第'+next.at+'世解锁：'+next.desc:'<span style="color:#b06a00">—— 所有轮回秘密已揭开 ——</span>';
+  return gotTxt+nextTxt;
+}
+function currentTitle(){
+  const ach=S.achievements.length;
+  if(S.rareItems.sword)return'降魔剑仙';
+  if(ach>=14)return'九州仙尊';
+  if(ach>=10)return'洞天之主';
+  if(ach>=6)return'禁制海行者';
+  if(ach>=3)return'筑基真人';
+  if(S.stats.revealedCount>=1000)return'初窥门径';
+  return'引气入体';
+}
+function resetMeta(){
+  S.revealedSum=0;S.gold=500;S.mult=1;S.cat=0;S.offlineMult=1;
+  S.bonus={probeR:0,blastR:0,hitLoss:1,dodge:0,minerSpeed:1,minerRefund:0};
+  S.items={probe:0,blast:0,miner:0,shield:0,hourglass:0,teleport:0,autoprobe:0};
+  S.stats={revealedCount:0,hits:0,collected:0,minerLost:0,minerRetired:0,timeSec:0,shieldBlocks:0,dungeonWins:0};
+  S.frozen=0;S.miners=[];S.armed=null;S.pendingMinerCost=0;
+  S.treasureMap=false;
+  S.shield=0;S.boost=0;S.autoProbe=null;
+  S.lakeBlessed=0;S.worldItems={anchor:0,foil:0};S.foil=null;
+  S.heroSword=false;
+  S.dungeons=[];S.dungeonsDiscovered=[];
+  S.rareItems={sword:false,frost:false,flame:false,void:false,bone:false};
+  S.event=null;
+  S.questIdx=0;
+  /* 跨轮回保留：道韵/强化/成就/里程碑/道具栏布局/季节/图鉴经历(eventsSeen,bossesKilled) */
+}
+/* 密度布禁制（独立小函数，保证被 V8 优化） */
+function genDensity(rng,mineMap,cx,cy,maxR){
+  const safeR=8;
+  for(let y=0;y<H;y++){
+    const dy=y-cy+0.5,dy2=dy*dy,base=y*W;
+    for(let x=0;x<W;x++){
+      const dx=x-cx+0.5;
+      const r=Math.sqrt(dx*dx+dy2)/maxR;
+      if(r*maxR<safeR)continue;
+      if(rng()<0.04+0.56*Math.pow(r,1.5))mineMap[base+x]=1;
+    }
+  }
+}
+function genRecalc(mineMap){
+  S.numMap.fill(0);
+  for(let i=0;i<N;i++)if(mineMap[i])scatterMine(i);
+}
+function generate(seedVal){
+  S.seed=seedVal;S.rng=mulberry32(seedVal);
+  S.mineMap=new Uint8Array(N);S.numMap=new Uint8Array(N);
+  S.revMap=new Uint8Array(N);S.flagMap=new Uint8Array(N);S.craterMap=new Uint8Array(N);
+  S.collMap=new Uint8Array(N);S.terrainMap=new Uint8Array(N);S.colls=[];S.lakeData=[];
+  resetMeta();
+  const cx=W/2,cy=H/2,maxR=Math.hypot(cx,cy);
+  genDensity(S.rng,S.mineMap,cx,cy,maxR);
+  placeTerrain(S.rng,cx,cy,maxR);
+  genRecalc(S.mineMap);
+  placeCollectibles(S.rng,cx,cy,maxR);
+}
+
+/* ---------- 翻开 / 禁制 / 灵宝 ---------- */
+let chBBox=null,chDepth=0;
+function beginChange(){if(chDepth===0)chBBox=null;chDepth++;}
+function endChange(){chDepth--;if(chDepth===0&&chBBox)updateMinimapBBox(chBBox);}
+function touch(i){
+  const x=i%W,y=(i/W)|0;
+  if(!chBBox){chBBox={x0:x,y0:y,x1:x,y1:y};}
+  else{if(x<chBBox.x0)chBBox.x0=x;if(x>chBBox.x1)chBBox.x1=x;if(y<chBBox.y0)chBBox.y0=y;if(y>chBBox.y1)chBBox.y1=y;}
+}
+
+function collectCollectible(cid,i){
+  const c=S.colls[cid-1];
+  if(!c||c.collected)return;
+  c.collected=true;
+  S.stats.collected++;
+  const e=EFFECTS[c.effectId];
+  e.apply(S,c);
+  FX.collect(i,e);
+  refreshHUD();saveSoon();
+}
+function markRevealed(i){
+  if(S.revMap[i]||isSolid(i))return false;
+  S.revMap[i]=1;
+  S.stats.revealedCount++;
+  touch(i);
+  paintPx(i);
+  const n=S.numMap[i];
+  if(!S.mineMap[i]&&n>0)S.revealedSum+=n;
+  const cid=S.collMap[i];
+  if(cid)collectCollectible(cid,i);
+  return true;
+}
+function flood(x,y,maxR){
+  /* 限制单次连锁翻开的半径（默认30），让闭关收益渐进增长 */
+  maxR=maxR||30;
+  const maxR2=maxR*maxR;
+  const stack=[idx(x,y)];
+  while(stack.length){
+    const i=stack.pop();
+    if(S.revMap[i]||S.flagMap[i]||S.mineMap[i])continue;
+    const cx=i%W,cy=(i/W)|0;
+    const dx=cx-x,dy=cy-y;
+    if(dx*dx+dy*dy>maxR2)continue;
+    markRevealed(i);
+    if(S.numMap[i]===0){
+      for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+        if(!ox&&!oy)continue;
+        const nx=cx+ox,ny=cy+oy;
+        if(nx<0||ny<0||nx>=W||ny>=H)continue;
+        const j=ny*W+nx;
+        if(!S.revMap[j]&&!S.flagMap[j]&&!S.mineMap[j]&&!isSolid(j))stack.push(j);
+      }
+    }
+  }
+}
+function revealFlood(x,y){beginChange();flood(x,y);endChange();}
+function revealFloodLimited(cx,cy,maxR){beginChange();flood(cx,cy,maxR);endChange();}
+function triggerMine(x,y){
+  const i=idx(x,y);
+  if(S.revMap[i])return;
+  beginChange();
+  S.revMap[i]=1;S.craterMap[i]=1;
+  S.stats.revealedCount++;S.stats.hits++;
+  touch(i);paintPx(i);
+  let loss=Math.max(S.gold*0.15,rate()*10);
+  if(S.rng&&S.rng()<S.bonus.dodge)loss=0;
+  if(S.event&&S.event.type==='thunder'&&S.rebirths>=5&&Math.random()<0.3)loss=0; /* 天劫庇佑 */
+  loss*=S.bonus.hitLoss*(1-0.10*S.starUpgrades.shield)*rareHitMult();
+  let freeze=true;
+  if(S.shield>0){ /* 玄光盾抵消本次禁制击 */
+    S.shield--;loss=0;freeze=false;
+    S.stats.shieldBlocks++;
+    FX.shield(x,y);
+  }
+  S.gold=Math.max(0,Math.floor(S.gold-loss));
+  if(freeze)S.frozen=5;
+  endChange();
+  FX.explode(x,y);
+  if(S.gold===0&&loss>0)FX.meteor(); /* 灵石归零 → 天劫罚世惩罚 */
+  refreshHUD();saveSoon();
+}
+function revealAt(x,y){
+  if(!inB(x,y))return{exploded:false};
+  const i=idx(x,y);
+  if(S.flagMap[i])return{exploded:false};
+  if(S.revMap[i]){
+    if(S.mineMap[i])return{exploded:false};
+    chord(x,y);
+    return{exploded:false};
+  }
+  if(S.mineMap[i]){triggerMine(x,y);return{exploded:true};}
+  revealFlood(x,y);
+  return{exploded:false};
+}
+/* 数字周围已确认的禁制信号数 = 插旗数 + 已探明禁制数（探针/禁制达揭示的炸弹也算） */
+function mineSignalsAround(x,y){
+  let c=0;
+  for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+    if(!ox&&!oy)continue;
+    const nx=x+ox,ny=y+oy;
+    if(!inB(nx,ny))continue;
+    const j=idx(nx,ny);
+    if(S.flagMap[j]||(S.revMap[j]&&S.mineMap[j]))c++;
+  }
+  return c;
+}
+function chord(x,y){
+  const i=idx(x,y),n=S.numMap[i];
+  if(n<=0)return;
+  if(mineSignalsAround(x,y)!==n)return; /* 旗帜 + 已探明禁制 = 数字 → 自动解开其余 */
+  beginChange();
+  for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+    if(!ox&&!oy)continue;
+    const nx=x+ox,ny=y+oy;
+    if(!inB(nx,ny))continue;
+    const j=idx(nx,ny);
+    if(S.revMap[j]||S.flagMap[j])continue;
+    if(S.mineMap[j])triggerMine(nx,ny);
+    else flood(nx,ny);
+  }
+  endChange();
+}
+function revealCircle(cx,cy,r){
+  beginChange();
+  for(let oy=-r;oy<=r;oy++)for(let ox=-r;ox<=r;ox++){
+    if(ox*ox+oy*oy>r*r)continue;
+    const nx=cx+ox,ny=cy+oy;
+    if(!inB(nx,ny))continue;
+    const j=idx(nx,ny);
+    if(!S.revMap[j])markRevealed(j);
+  }
+  endChange();
+}
+function revealAllMines(){
+  let cnt=0;
+  for(let i=0;i<N;i++)if(S.mineMap[i]&&!S.revMap[i]){S.revMap[i]=1;cnt++;}
+  S.stats.revealedCount+=cnt;
+  paintMinesBulk();
+  updateMinimapFull();
+  refreshHUD();saveSoon();
+}
+function probeReveal(x,y){
+  const r=probeRadius();
+  beginChange();
+  for(let oy=-r;oy<=r;oy++)for(let ox=-r;ox<=r;ox++){
+    if(ox*ox+oy*oy>r*r)continue;
+    const nx=x+ox,ny=y+oy;
+    if(!inB(nx,ny))continue;
+    const j=idx(nx,ny);
+    if(!S.revMap[j])markRevealed(j);
+  }
+  endChange();
+}
+function useProbe(x,y){
+  probeReveal(x,y);
+  S.items.probe--;
+  if(S.items.probe<=0)setArmed(null);
+  FX.coin();refreshHUD();saveSoon();
+}
+function recalcNumbers(cx,cy,rr){
+  for(let oy=-rr;oy<=rr;oy++)for(let ox=-rr;ox<=rr;ox++){
+    const nx=cx+ox,ny=cy+oy;
+    if(!inB(nx,ny))continue;
+    const j=idx(nx,ny);
+    const oldN=S.numMap[j];
+    let n=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      if(!dx&&!dy)continue;
+      const ax=nx+dx,ay=ny+dy;
+      if(inB(ax,ay)&&S.mineMap[idx(ax,ay)])n++;
+    }
+    S.numMap[j]=n;
+    /* 已翻开区域的数字变化 → 闭关收益同步增减 */
+    if(S.revMap[j]&&!S.mineMap[j])S.revealedSum+=n-oldN;
+  }
+}
+function useBlast(x,y){
+  const r=blastRadius();
+  const cells=[];
+  for(let oy=-r;oy<=r;oy++)for(let ox=-r;ox<=r;ox++){
+    if(ox*ox+oy*oy>r*r)continue;
+    const nx=x+ox,ny=y+oy;
+    if(!inB(nx,ny))continue;
+    cells.push(idx(nx,ny));
+  }
+  for(const j of cells)S.mineMap[j]=0;
+  recalcNumbers(x,y,r+1);
+  beginChange();
+  for(const j of cells)if(!S.revMap[j])markRevealed(j);
+  endChange();
+  S.items.blast--;
+  if(S.items.blast<=0)setArmed(null);
+  FX.blast();refreshHUD();saveSoon();
+}
+
+/* ---------- 灵傀 ---------- */
+function spawnMiner(x,y,cost){
+  const cx=W/2,cy=H/2;
+  let dx=x-cx,dy=y-cy;
+  const L=Math.hypot(dx,dy);
+  if(L<1){dx=1;dy=0;}
+  else{dx/=L;dy/=L;}
+  S.miners.push({px:x,py:y,dx,dy,acc:0,cost});
+}
+function killMiner(m,hx,hy){
+  const i=S.miners.indexOf(m);
+  if(i>=0)S.miners.splice(i,1);
+  S.stats.minerLost++;
+  if(S.bonus.minerRefund>0)S.gold+=Math.floor(m.cost*S.bonus.minerRefund);
+  FX.explode(hx,hy);
+  refreshHUD();saveSoon();
+}
+function retireMiner(m){
+  const i=S.miners.indexOf(m);
+  if(i>=0)S.miners.splice(i,1);
+  S.stats.minerRetired++;
+  refreshHUD();saveSoon();
+}
+function stepMiners(dtMs){
+  if(!S.miners.length)return;
+  beginChange();
+  const interval=100/(S.bonus.minerSpeed*(1+0.10*S.starUpgrades.miner)*rareMinerMult());
+  for(let mi=S.miners.length-1;mi>=0;mi--){
+    const m=S.miners[mi];
+    m.acc+=dtMs;
+    let dead=false,retired=false,hx=0,hy=0;
+    while(m.acc>=interval){
+      m.acc-=interval;
+      const cx=Math.round(m.px),cy=Math.round(m.py);
+      const pxn=-m.dy,pyn=m.dx;
+      let hit=false,blocked=false;
+      for(let k=-MINER_HALF;k<=MINER_HALF;k++){
+        const nx=cx+Math.round(pxn*k),ny=cy+Math.round(pyn*k);
+        if(!inB(nx,ny))continue;
+        const j=idx(nx,ny);
+        if(S.revMap[j])continue;
+        if(isSolid(j)){blocked=true;break;} /* 地形阻挡，灵傀退役 */
+        if(S.mineMap[j]){if(!hit){hit=true;hx=nx;hy=ny;}}
+        else markRevealed(j);
+      }
+      if(blocked){retired=true;break;}
+      if(hit){dead=true;break;}
+      m.px+=m.dx;m.py+=m.dy;
+      if(m.px<0||m.py<0||m.px>=W||m.py>=H){retired=true;break;}
+    }
+    if(dead)killMiner(m,hx,hy);
+    else if(retired)retireMiner(m);
+  }
+  endChange();
+}
+
+/* ---------- 存档 ---------- */
+function packBits(arr){
+  const out=new Uint8Array(Math.ceil(N/8));
+  for(let i=0;i<N;i++)if(arr[i])out[i>>3]|=1<<(i&7);
+  let s='';
+  const CH=0x8000;
+  for(let i=0;i<out.length;i+=CH)s+=String.fromCharCode.apply(null,out.subarray(i,i+CH));
+  return btoa(s);
+}
+function unpackBits(str,arr){
+  arr.fill(0);
+  const bin=atob(str);
+  for(let i=0;i<bin.length;i++){
+    const c=bin.charCodeAt(i);
+    if(!c)continue;
+    for(let b=0;b<8;b++)if(c&(1<<b))arr[i*8+b]=1;
+  }
+}
+function saveGame(){
+  try{
+    const d={v:1,seed:S.seed,gold:S.gold,revealedSum:S.revealedSum,mult:S.mult,cat:S.cat,
+      offlineMult:S.offlineMult,bonus:S.bonus,items:S.items,stats:S.stats,frozen:S.frozen,
+      collectedMask:S.colls.reduce((a,c,j)=>a|(c.collected?(1<<j):0),0),
+      treasureMap:S.treasureMap,
+      stardust:S.stardust,starUpgrades:S.starUpgrades,achievements:S.achievements,
+      rebirths:S.rebirths,milestones:S.milestones,
+      shield:S.shield,boost:S.boost,autoProbe:S.autoProbe,
+      worldItems:S.worldItems,foil:S.foil,lakeBlessed:S.lakeBlessed,
+      heroSword:S.heroSword,dungeonsDiscovered:S.dungeonsDiscovered,rareItems:S.rareItems,hotbar:S.hotbar,
+      season:S.season,seasonT:S.seasonT,eventsSeen:S.eventsSeen,bossesKilled:S.bossesKilled,questIdx:S.questIdx,
+      musicOn:S.musicOn,musicVol:S.musicVol,
+      miners:S.miners.map(m=>({px:m.px,py:m.py,dx:m.dx,dy:m.dy,cost:m.cost})),
+      rev:packBits(S.revMap),flags:packBits(S.flagMap),t:Date.now(),muted:SFX.muted};
+    localStorage.setItem(SAVE_KEY,JSON.stringify(d));
+  }catch(e){}
+}
+function loadSave(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw)return null;
+    const d=JSON.parse(raw);
+    if(!d||d.v!==1||!d.seed)return null;
+    return d;
+  }catch(e){return null;}
+}
+function applyOffline(d){
+  const elapsed=(Date.now()-d.t)/1000;
+  if(elapsed<10)return 0;
+  const cap=Math.min(elapsed,43200);
+  const earned=Math.floor(rate()*cap*0.5*S.offlineMult*(1+0.10*S.starUpgrades.offline));
+  if(earned>0)S.gold+=earned;
+  return earned;
+}
+
+/* ---------- 成就 & 里程碑 ---------- */
+const ACHIEVEMENTS=[
+ {id:'a1' ,icon:'🌱',name:'初入仙门',desc:'翻开 100 格',gold:200,cond:s=>s.stats.revealedCount>=100},
+ {id:'a2' ,icon:'🔍',name:'炼气小成',desc:'翻开 1,000 格',gold:1000,cond:s=>s.stats.revealedCount>=1000},
+ {id:'a3' ,icon:'🧭',name:'筑基有成',desc:'翻开 10,000 格',gold:5000,cond:s=>s.stats.revealedCount>=10000},
+ {id:'a4' ,icon:'🗺️',name:'金丹真人',desc:'翻开 100,000 格',gold:50000,cond:s=>s.stats.revealedCount>=100000},
+ {id:'a5' ,icon:'💎',name:'初得灵宝',desc:'收集 1 件灵宝',gold:2000,cond:s=>s.stats.collected>=1},
+ {id:'a6' ,icon:'🎖️',name:'藏宝真人',desc:'收集 6 件灵宝',gold:20000,cond:s=>s.stats.collected>=6},
+ {id:'a7' ,icon:'👑',name:'灵宝阁主',desc:'收集全部 12 件灵宝',gold:100000,cond:s=>s.stats.collected>=12},
+ {id:'a8' ,icon:'💥',name:'铜皮铁骨',desc:'触发 10 次禁制',gold:500,cond:s=>s.stats.hits>=10},
+ {id:'a9' ,icon:'⚡',name:'雷劫淬体',desc:'触发 100 次禁制',gold:10000,cond:s=>s.stats.hits>=100},
+ {id:'a10',icon:'🤖',name:'驱使灵傀',desc:'灵傀累计出动 1 次（牺牲或退役）',gold:300,cond:s=>s.stats.minerLost+s.stats.minerRetired>=1},
+ {id:'a11',icon:'⛏️',name:'傀儡宗师',desc:'灵傀累计出动 10 次',gold:5000,cond:s=>s.stats.minerLost+s.stats.minerRetired>=10},
+ {id:'a12',icon:'🦊',name:'灵狐入怀',desc:'聚宝灵狐 Lv.10',gold:5000,cond:s=>s.cat>=10},
+ {id:'a13',icon:'🗺️',name:'罗盘之主',desc:'购买寻宝罗盘',gold:2000,cond:s=>s.treasureMap},
+ {id:'a14',icon:'⏳',name:'闭关苦修',desc:'累计在线 1 小时',gold:10000,cond:s=>s.stats.timeSec>=3600},
+ {id:'a15',icon:'🛡️',name:'金身不坏',desc:'玄光盾抵挡一次禁制反噬',gold:1500,cond:s=>s.stats.shieldBlocks>=1},
+ {id:'a16',icon:'🌌',name:'轮回重修',desc:'轮回 1 次',star:20,cond:s=>s.rebirths>=1},
+ {id:'a17',icon:'👑',name:'降魔功成',desc:'通关魔宗禁地洞天',gold:50000,cond:s=>s.stats.dungeonWins>=1},
+];
+const MILESTONES=[
+ {pct:0.05,reward:2000},{pct:0.10,reward:10000},{pct:0.20,reward:50000},
+ {pct:0.35,reward:200000},{pct:0.50,reward:1000000},
+];
+function checkAchievements(){
+  for(const a of ACHIEVEMENTS){
+    if(S.achievements.includes(a.id))continue;
+    if(a.cond(S)){
+      S.achievements.push(a.id);
+      let txt=a.icon+' 成就达成：'+a.name;
+      if(a.gold){S.gold+=a.gold;txt+=' +'+fmt(a.gold)+'💰';}
+      if(a.star){S.stardust+=a.star;txt+=' +'+a.star+'✨';}
+      FX.toast(txt);
+      refreshHUD();saveSoon();
+    }
+  }
+}
+function checkMilestones(){
+  const pct=S.stats.revealedCount/N;
+  for(let i=0;i<MILESTONES.length;i++){
+    if(S.milestones&(1<<i))continue;
+    if(pct>=MILESTONES[i].pct){
+      S.milestones|=1<<i;
+      S.gold+=MILESTONES[i].reward;
+      FX.toast('📈 揭示率 '+Math.round(MILESTONES[i].pct*100)+'% 达成！+'+fmt(MILESTONES[i].reward)+'💰');
+      refreshHUD();saveSoon();
+    }
+  }
+}
+
+/* ---------- 音效 ---------- */
+const SFX=(()=>{
+  let ctx=null,muted=false;
+  try{muted=localStorage.getItem(SAVE_KEY+'_muted')==='1';}catch(e){}
+  function ac(){if(!ctx){try{ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(ctx&&ctx.state==='suspended')ctx.resume();return ctx;}
+  function tone(f,d,type,g,slide){
+    if(muted)return;const c=ac();if(!c)return;
+    const o=c.createOscillator(),gn=c.createGain();
+    o.type=type;o.frequency.value=f;
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),c.currentTime+d);
+    gn.gain.setValueAtTime(g,c.currentTime);
+    gn.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);
+    o.connect(gn);gn.connect(c.destination);o.start();o.stop(c.currentTime+d+0.02);
+  }
+  function noise(d,g){
+    if(muted)return;const c=ac();if(!c)return;
+    const len=(c.sampleRate*d)|0,buf=c.createBuffer(1,len,c.sampleRate),dat=buf.getChannelData(0);
+    for(let i=0;i<len;i++)dat[i]=(Math.random()*2-1);
+    const src=c.createBufferSource();src.buffer=buf;
+    const gn=c.createGain();gn.gain.setValueAtTime(g,c.currentTime);
+    gn.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);
+    const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.value=800;
+    src.connect(fl);fl.connect(gn);gn.connect(c.destination);src.start();src.stop(c.currentTime+d);
+  }
+  return{
+    get muted(){return muted;},
+    set muted(v){muted=v;try{localStorage.setItem(SAVE_KEY+'_muted',v?'1':'0');}catch(e){}},
+    unlock(){ac();},
+    pop(){tone(420,0.07,'triangle',0.28);},
+    flag(){tone(300,0.05,'square',0.18);},
+    coin(){tone(880,0.07,'sine',0.3);setTimeout(()=>tone(1320,0.1,'sine',0.3),55);},
+    collect(){[660,880,1320,1760].forEach((f,i)=>setTimeout(()=>tone(f,0.15,'sine',0.34),i*75));},
+    explode(){noise(0.45,0.75);tone(85,0.5,'sawtooth',0.45,-50);},
+    blast(){noise(0.35,0.6);tone(65,0.4,'sawtooth',0.4,-30);},
+    shield(){tone(1400,0.09,'sine',0.3);tone(900,0.13,'sine',0.26,300);},
+    boost(){[520,780,1170].forEach((f,i)=>setTimeout(()=>tone(f,0.13,'sine',0.32),i*70));},
+    teleport(){noise(0.25,0.45);tone(300,0.35,'sine',0.26,220);},
+  };
+})();
+/* 特效钩子：测试环境为 no-op */
+const FX={explode(){},collect(){},coin(){},blast(){},pop(){},flag(){},toast(){},shield(){},anchor(){},meteor(){},quest(){}};
+
+/* ---------- 落点距离规则（操作目标须距已探索区域 ≤20 格） ---------- */
+const REVEAL_RANGE=20;
+function withinRevealRange(x,y){
+  if(S.revMap[idx(x,y)])return true;
+  for(let oy=-REVEAL_RANGE;oy<=REVEAL_RANGE;oy++){
+    const ny=y+oy;if(ny<0||ny>=H)continue;
+    const row=ny*W;
+    for(let ox=-REVEAL_RANGE;ox<=REVEAL_RANGE;ox++){
+      const nx=x+ox;if(nx<0||nx>=W)continue;
+      if(S.revMap[row+nx])return true;
+    }
+  }
+  return false;
+}
+
+/* ---------- 浏览器钩子（测试环境为 no-op，浏览器启动时覆写） ---------- */
+let updateMinimapBBox=function(){};
+let updateMinimapFull=function(){};
+let paintPx=function(){};
+let paintMinesBulk=function(){};
+let setArmed=function(k){S.armed=k;};
+let refreshHUD=function(){};
+let saveSoon=function(){};
+
+/* ---------- 导出（供 node 测试） ---------- */
+const MS={
+  W,H,N,COLLECT_COUNT,S,EFFECTS,
+  generate,revealAt,revealFlood,revealFloodLimited,flood,markRevealed,triggerMine,chord,revealCircle,revealAllMines,
+  useProbe,useBlast,recalcNumbers,spawnMiner,stepMiners,killMiner,retireMiner,
+  packBits,unpackBits,saveGame,loadSave,applyOffline,
+  rate,costProbe,costBlast,costMiner,costCat,costTreasure,costShield,costHourglass,costTeleport,
+  scatterMine,placeCollectibles,updateMinimapBBox,
+  probeRadius,blastRadius,starCost,STAR_DEFS,FX,
+  ACHIEVEMENTS,MILESTONES,checkAchievements,checkMilestones,
+  placeTerrain,placeLakes,placeVolcano,placeCastle,placeWall,withinRevealRange,isSolid,
+  resetMeta,density,rareIncomeMult,rareHitMult,rareMinerMult,eventMult,
+};
+if(typeof module!=='undefined'&&module.exports)module.exports=MS;
+
+/* ================================================================
+   🖥️ 浏览器启动
+   ================================================================ */
+if(typeof window!=='undefined'){
+const $=id=>document.getElementById(id);
+const stage=$('stage'),game=$('game'),gctx=game.getContext('2d');
+const fxc=$('fx'),fctx=fxc.getContext('2d');
+const minimap=$('minimap'),mctx=minimap.getContext('2d');
+const MM=256,BLK=W/MM;
+minimap.width=minimap.height=MM;
+let pxCanvas=null,pxCtx=null,mmImg=null,tw=false,saveTimer=null;
+saveSoon=function(){if(saveTimer)return;saveTimer=setTimeout(()=>{saveTimer=null;saveGame();},1500);};
+
+/* ---------- 背景音乐（WebAudio 合成，无外部文件；事件有专属曲风） ---------- */
+const MUSIC=(()=>{
+  let ctx=null,on=false,vol=0.45,timer=null,nextT=0,stepIdx=0,style='normal';
+  /* 宫商角徵羽 五声音阶（C宫）：C D E G A C' D' E' G' A' C'' */
+  const SCALE=[130.81,146.83,164.81,196.00,220.00,261.63,293.66,329.63,392.00,440.00,523.25,587.33,659.25,783.99,880.00,1046.50,1174.66,1318.51,1567.98,1760.00];
+  const STYLES={
+    normal:{root:5,mode:[0,2,4,7,9,12,14,16],seq:[0,2,4,7,9,12,14,16,19,16,14,12,9,7,4,2],step:0.55,type:'triangle',arp:0.16,bass:0.05,acc:0.1,volMul:1},
+    fog:{root:3,mode:[0,2,4,7,9,12,14,16],seq:[0,4,7,9,4,7,9,12,7,9,12,14,9,12,14,16],step:0.75,type:'sine',arp:0.1,bass:0.05,acc:0.06,volMul:0.8},
+    night:{root:7,mode:[0,2,3,5,7,9,10,12],seq:[0,2,3,5,7,5,3,2,3,2,0,2,3,5,7,9],step:0.65,type:'sine',arp:0.09,bass:0.05,acc:0.05,volMul:0.75},
+    solar:{root:5,mode:[0,2,4,7,9,12,14,16],seq:[0,2,4,7,4,2,4,7,9,7,4,2,0,2,4,7],step:0.4,type:'triangle',arp:0.18,bass:0.06,acc:0.12,volMul:1.15},
+    lunar:{root:9,mode:[0,2,4,7,9,12,14,16],seq:[0,4,7,9,7,4,9,12,14,12,9,7,4,2,0,2],step:0.6,type:'sine',arp:0.12,bass:0.05,acc:0.07,volMul:0.9},
+  };
+  function ac(){if(!ctx){try{ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(ctx&&ctx.state==='suspended')ctx.resume();return ctx;}
+  function note(f,t,dur,g,type){
+    if(!ctx||!on)return;
+    const o=ctx.createOscillator(),gn=ctx.createGain();
+    o.type=type||'sine';o.frequency.value=f;
+    /* 古筝式拨弦：快速起音 + 指数衰减，尾音略降 */
+    o.frequency.setValueAtTime(f*1.012,t);
+    o.frequency.exponentialRampToValueAtTime(f,t+0.06);
+    gn.gain.setValueAtTime(0.0001,t);
+    gn.gain.exponentialRampToValueAtTime(g,t+0.012);
+    gn.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    const master=ctx.createGain();master.gain.value=vol*4;
+    o.connect(gn);gn.connect(master);master.connect(ctx.destination);
+    o.start(t);o.stop(t+dur+0.05);
+  }
+  function tick(){
+    if(!on)return;
+    const c=ac();if(!c)return;
+    const st=STYLES[style]||STYLES.normal;
+    const si=i=>SCALE[i%SCALE.length];
+    while(nextT<c.currentTime+0.35){
+      const bar=nextT,ph=(stepIdx%8);
+      const base=st.seq[stepIdx%st.seq.length];
+      const f=si(st.root+st.mode[base%st.mode.length]);
+      /* 主旋律：宫音长音 + 旋律滑奏 */
+      for(let i=0;i<8;i++){
+        const s=st.seq[(stepIdx*2+i)%st.seq.length];
+        if(s%3===0)note(f*(s===0?1:2),bar+i*st.step*0.5,st.step*0.45,st.arp*0.7,st.type);
+      }
+      /* 低音：羽/宫 五度根音托底 */
+      for(let b=0;b<4;b++)note(si(st.root+st.mode[b%8])/2,bar+b*st.step*2,st.step*2.2,st.bass,'sine');
+      /* 泛音点缀 */
+      note(si(st.root+st.mode[((base+2)%8)])*2,bar+st.step*4,st.step*1.2,st.acc,'sine');
+      note(si(st.root+st.mode[((base+4)%8)])*2,bar+st.step*6,st.step*1,st.acc*0.8,'sine');
+      nextT=bar+st.step*8;
+      stepIdx++;
+    }
+  }
+  return{
+    get on(){return on;},
+    set on(v){on=v;if(v){nextT=0;stepIdx=0;if(timer)clearInterval(timer);timer=setInterval(tick,120);ac();}else if(timer){clearInterval(timer);timer=null;}},
+    get vol(){return vol;},
+    set vol(v){vol=Math.max(0,Math.min(1,v));},
+    setStyle(st){style=STYLES[st]?st:'normal';nextT=0;stepIdx=0;},
+    unlock(){if(on)ac();},
+  };
+})();
+
+/* ---------- 状态色板（修仙配色） ---------- */
+const ST={HIDDEN:0,FLAG:1,N0:2,N1:3,N2:4,N3:5,N4:6,N5:7,N6:8,N7:9,N8:10,BOMB:11,CRATER:12,COLLECT:13,LAKE:14,VOLCANO:15,WALL:16,CASTLE:17,PORTAL:18};
+const COL={
+  [ST.HIDDEN]:[160,196,235],[ST.FLAG]:[138,178,228],[ST.N0]:[246,250,255],[ST.N1]:[86,200,240],
+  [ST.N2]:[76,214,160],[ST.N3]:[255,126,179],[ST.N4]:[192,155,255],[ST.N5]:[255,169,77],
+  [ST.N6]:[43,196,184],[ST.N7]:[255,212,59],[ST.N8]:[255,92,138],[ST.BOMB]:[150,100,200],
+  [ST.CRATER]:[110,60,90],[ST.COLLECT]:[255,224,102],
+  [ST.LAKE]:[58,140,220],[ST.VOLCANO]:[200,100,70],[ST.WALL]:[140,150,180],[ST.CASTLE]:[110,90,170],[ST.PORTAL]:[150,70,200],
+};
+const TERRAIN_EMOJI={[ST.LAKE]:'💧',[ST.VOLCANO]:'🌋',[ST.WALL]:'🧱',[ST.CASTLE]:'🏰',[ST.PORTAL]:'🌀'};
+const NUM_TEXT_COL={[ST.N1]:'#063a52',[ST.N2]:'#06402b',[ST.N3]:'#5c1133',[ST.N4]:'#3a1e6e',[ST.N5]:'#6e3a00',[ST.N6]:'#064e49',[ST.N7]:'#4a3400',[ST.N8]:'#ffffff'};
+const EMOJI={[ST.FLAG]:'🚩',[ST.BOMB]:'💣',[ST.CRATER]:'💥',[ST.COLLECT]:'💎'};
+const PXC={};
+for(const k in COL)PXC[k]='rgb('+(COL[k][0]|0)+','+(COL[k][1]|0)+','+(COL[k][2]|0)+')';
+function cellState(i){
+  const t=S.terrainMap[i];
+  if(t===1)return ST.LAKE;
+  if(t===2)return ST.VOLCANO;
+  if(t===3)return ST.WALL;
+  if(!S.revMap[i])return S.flagMap[i]?ST.FLAG:ST.HIDDEN;
+  if(t===5)return ST.PORTAL;
+  if(t===4)return ST.CASTLE;
+  if(S.collMap[i])return ST.COLLECT;
+  if(S.mineMap[i])return S.craterMap[i]?ST.CRATER:ST.BOMB;
+  return 2+S.numMap[i];
+}
+paintPx=function(i){
+  if(!pxCtx)return;
+  pxCtx.fillStyle=PXC[cellState(i)];
+  pxCtx.fillRect(i%W,(i/W)|0,1,1);
+  if(S.revMap[i]&&!S.mineMap[i]&&S.numMap[i]===0)homeZero=i;
+};
+paintMinesBulk=function(){
+  if(!pxCtx)return;
+  const img=pxCtx.getImageData(0,0,W,H);
+  const d=new Uint32Array(img.data.buffer);
+  const c=0xFF000000|(COL[ST.BOMB][2]<<16)|(COL[ST.BOMB][1]<<8)|COL[ST.BOMB][0];
+  for(let i=0;i<N;i++)if(S.mineMap[i])d[i]=c;
+  pxCtx.putImageData(img,0,0);
+};
+function initPxFull(){
+  pxCanvas=document.createElement('canvas');
+  pxCanvas.width=W;pxCanvas.height=H;
+  pxCtx=pxCanvas.getContext('2d');
+  const img=pxCtx.createImageData(W,H);
+  const d=new Uint32Array(img.data.buffer);
+  for(let i=0;i<N;i++){
+    const c=COL[cellState(i)];
+    d[i]=0xFF000000|(c[2]<<16)|(c[1]<<8)|c[0];
+  }
+  pxCtx.putImageData(img,0,0);
+}
+/* ---------- 小地图（可缩放视图，＋－按钮控制小地图本身） ---------- */
+let mmView={ox:0,oy:0,half:1024}; /* half = 视图半宽（格），ox/oy = 视图左上角 */
+function mmBlk(){return Math.max(1,Math.round(2*mmView.half/MM));}
+function mmViewClamp(){
+  const w=2*mmView.half;
+  mmView.ox=Math.max(0,Math.min(W-w,mmView.ox));
+  mmView.oy=Math.max(0,Math.min(H-w,mmView.oy));
+}
+function mmColorFor(px,py){
+  const blk=mmBlk(),x0=mmView.ox+px*blk,y0=mmView.oy+py*blk;
+  const x1=Math.min(W,x0+blk),y1=Math.min(H,y0+blk);
+  let anyR=false,mineR=false,maxN=0,coll=false,collDone=false,terr=0;
+  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
+    const i=y*W+x;
+    const t=S.terrainMap[i];
+    if((t===1||t===2||t===3)||((t===4||t===5)&&!S.revMap[i])){if(t>terr)terr=t;continue;}
+    const cid=S.collMap[i];
+    if(cid){coll=true;if(S.colls[cid-1].collected)collDone=true;}
+    if(S.revMap[i]){anyR=true;if(S.mineMap[i])mineR=true;else if(S.numMap[i]>maxN)maxN=S.numMap[i];}
+  }
+  if(coll&&!collDone)return'coll';
+  if(terr)return'terr'+terr;
+  if(mineR)return'mine';
+  if(anyR)return'n'+maxN;
+  return'h';
+}
+function mmRGB(k,br){
+  if(k==='coll')return br?[255,240,150]:[150,120,60];
+  if(k==='mine')return[255,80,90];
+  if(k==='h')return[108,142,200];
+  if(k.indexOf('terr')===0){const c=COL[13+ (+k.slice(4))];return[c[0],c[1],c[2]];}
+  const n=+k.slice(1);
+  return COL[2+n];
+}
+/* 小地图上的区域圈层：福地→灵脉→凶地→绝域（仅全图视图显示） */
+function drawMinimapRings(){
+  const cx=MM/2,cy=MM/2,R=MM/2-3;
+  const zones=[[0.30,'福地'],[0.60,'灵脉'],[0.85,'凶地'],[1.0,'绝域']];
+  mctx.strokeStyle='rgba(20,70,150,0.6)';
+  mctx.lineWidth=1.5;
+  for(let i=0;i<3;i++){
+    mctx.beginPath();
+    mctx.arc(cx,cy,R*zones[i][0],0,Math.PI*2);
+    mctx.stroke();
+  }
+  mctx.fillStyle='rgba(20,70,150,0.9)';
+  mctx.font='bold 9px sans-serif';
+  mctx.textAlign='center';
+  mctx.textBaseline='middle';
+  for(let i=0;i<4;i++){
+    const next=zones[i+1]?zones[i+1][0]:1;
+    const rr=R*((zones[i][0]+next)/2);
+    mctx.fillText(zones[i][1],Math.min(MM-20,cx+rr+12),cy);
+  }
+}
+function redrawMinimapView(){
+  if(!mmImg)return;
+  const d=new Uint32Array(mmImg.data.buffer);
+  for(let py=0;py<MM;py++)for(let px=0;px<MM;px++){
+    const c=mmColorFor(px,py),[r,g,b]=mmRGB(c,false);
+    d[py*MM+px]=0xFF000000|(b<<16)|(g<<8)|r;
+  }
+  mctx.putImageData(mmImg,0,0);
+  if(mmView.half>=1024)drawMinimapRings();
+}
+function mmZoomIn(){mmView.half=Math.max(128,Math.round(mmView.half/2));mmViewClamp();redrawMinimapView();}
+function mmZoomOut(){mmView.half=Math.min(1024,Math.round(mmView.half*2));mmViewClamp();redrawMinimapView();}
+updateMinimapFull=function(){redrawMinimapView();};
+updateMinimapBBox=function(bb){
+  if(!mmImg)return;
+  if(mmView.half<1024){
+    redrawMinimapView(); /* 放大视图：整体刷新（块小，开销低） */
+  }else{
+    const blk=mmBlk();
+    const px0=Math.max(0,Math.floor((bb.x0-mmView.ox)/blk)),py0=Math.max(0,Math.floor((bb.y0-mmView.oy)/blk));
+    const px1=Math.min(MM-1,Math.floor((bb.x1-mmView.ox)/blk)),py1=Math.min(MM-1,Math.floor((bb.y1-mmView.oy)/blk));
+    const d=new Uint32Array(mmImg.data.buffer);
+    for(let py=py0;py<=py1;py++)for(let px=px0;px<=px1;px++){
+      const c=mmColorFor(px,py),[r,g,b]=mmRGB(c,false);
+      d[py*MM+px]=0xFF000000|(b<<16)|(g<<8)|r;
+    }
+    mctx.putImageData(mmImg,0,0);
+    drawMinimapRings();
+  }
+  sprinkleDecos(bb);
+  checkLakes();
+  checkDungeons();
+};
+function initMinimap(){mmImg=mctx.createImageData(MM,MM);redrawMinimapView();}
+setInterval(()=>{ /* 灵宝闪烁 */
+  if(!mmImg)return;
+  if(mmView.half<1024){redrawMinimapView();return;}
+  tw=!tw;
+  const blk=mmBlk();
+  const d=new Uint32Array(mmImg.data.buffer);
+  for(const c of S.colls){
+    if(c.collected)continue;
+    const px=((c.x-mmView.ox)/blk)|0,py=((c.y-mmView.oy)/blk)|0;
+    if(px<0||py<0||px>=MM||py>=MM)continue;
+    const [r,g,b]=mmRGB('coll',tw);
+    d[py*MM+px]=0xFF000000|(b<<16)|(g<<8)|r;
+  }
+  mctx.putImageData(mmImg,0,0);
+  drawMinimapRings();
+},500);
+
+/* ---------- 野外妖王与游方仙商（游荡事件） ---------- */
+function wanderPos(){
+  const half=Math.min(W,H)/2;
+  for(let t=0;t<80;t++){
+    const ang=Math.random()*Math.PI*2;
+    const r=half*(0.45+Math.random()*0.5);
+    const x=Math.round(W/2+Math.cos(ang)*r),y=Math.round(H/2+Math.sin(ang)*r);
+    if(x>6&&y>6&&x<W-7&&y<H-7)return{x,y};
+  }
+  return{x:Math.max(6,W-200),y:Math.max(6,H-200)};
+}
+function bossName(tier){return tier===1?'青皮小妖':tier===2?'玄铁魔傀':'太虚妖龙';}
+function spawnBoss(){
+  const tier=1+((Math.random()*3)|0);
+  const p=wanderPos();
+  const hp=Math.round((60+tier*50)*(1+0.4*S.rebirths));
+  S.boss={x:p.x,y:p.y,tier,hp,hpMax:hp};
+  FX.toast('👹 野外妖王出现：'+bossName(tier)+'（'+tier+'阶）！点触它发起挑战');
+  refreshHUD();saveSoon();
+}
+function makeMerchantOffers(){
+  const pool=[
+    {k:'probe',icon:'🔭',n:3,label:'探灵符 ×3'},
+    {k:'blast',icon:'💥',n:1,label:'破禁符 ×1'},
+    {k:'miner',icon:'🤖',n:1,label:'灵傀 ×1'},
+    {k:'hourglass',icon:'⏳',n:2,label:'光阴砂漏 ×2'},
+    {k:'shield',icon:'🛡️',n:2,label:'玄光盾 ×2'},
+    {k:'cat',icon:'🦊',n:1,label:'聚宝灵狐 +1 级'},
+    {k:'star',icon:'✨',n:10,label:'道韵 ×10'},
+    {k:'gold',icon:'💰',n:1,label:'灵石大礼包（当前灵气×1800）'},
+  ];
+  for(let i=pool.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[pool[i],pool[j]]=[pool[j],pool[i]];}
+  return pool.slice(0,3).map(o=>({...o,sold:false}));
+}
+function merchantOfferPrice(o){
+  if(o.k==='probe')return Math.ceil(0.7*3*costProbe());
+  if(o.k==='blast')return Math.ceil(0.7*costBlast());
+  if(o.k==='miner')return Math.ceil(0.7*costMiner());
+  if(o.k==='hourglass')return Math.ceil(0.7*2*costHourglass());
+  if(o.k==='shield')return Math.ceil(0.7*2*costShield());
+  if(o.k==='cat')return Math.ceil(0.7*costCat());
+  if(o.k==='star')return 3000;
+  return 5000;
+}
+function spawnMerchant(){
+  const p=wanderPos();
+  S.merchant={x:p.x,y:p.y,offers:makeMerchantOffers()};
+  FX.toast('🧺 游方仙商出现了！点触他的货摊逛逛（限时 3 分钟）');
+  refreshHUD();
+}
+function openMerchant(){
+  const m=S.merchant;
+  if(!m)return;
+  const html='<p style="text-align:center;color:#33527f;font-size:13px">「远方的旅人，需要些好东西吗？折扣仅此一次。」</p>'+
+    m.offers.map((o,i)=>'<div class="item">'+
+      '<div class="item-icon">'+o.icon+'</div>'+
+      '<div class="item-info"><div class="item-name">'+o.label+(o.sold?' <span style="color:#7a93b8">已售罄</span>':'')+'</div>'+
+      '<div class="item-cost">💰 '+fmt(merchantOfferPrice(o))+'</div></div>'+
+      '<div class="item-actions"><button class="btn-buy" data-mo="'+i+'"'+(o.sold||S.gold<merchantOfferPrice(o)?' disabled':'')+'>购买</button></div>'+
+    '</div>').join('');
+  showModal('🧺 游方仙商',html);
+  const body=document.getElementById('modalBody');
+  if(body&&body.querySelectorAll){
+    body.querySelectorAll('button[data-mo]').forEach(b=>{
+      b.onclick=()=>{
+        const i=+b.dataset.mo;
+        merchantBuy(i);
+        openMerchant(); /* 刷新 */
+      };
+    });
+  }
+}
+function merchantBuy(i){
+  const m=S.merchant;
+  const o=m.offers[i];
+  if(!o||o.sold)return;
+  const p=merchantOfferPrice(o);
+  if(S.gold<p)return;
+  S.gold-=p;
+  o.sold=true;
+  if(o.k==='probe')S.items.probe+=o.n;
+  else if(o.k==='blast')S.items.blast+=o.n;
+  else if(o.k==='miner')S.items.miner+=o.n;
+  else if(o.k==='hourglass')S.items.hourglass+=o.n;
+  else if(o.k==='shield')S.items.shield+=o.n;
+  else if(o.k==='cat')S.cat++;
+  else if(o.k==='star')S.stardust+=o.n;
+  else if(o.k==='gold')S.gold+=Math.floor(rate()*1800);
+  SFX.coin();
+  FX.toast('🛍️ 成交：'+o.label);
+  refreshHUD();saveSoon();
+}
+/* 野外妖王 战斗 */
+let bossFightTimer=null;
+function openBossBattle(){
+  const b=S.boss;
+  if(!b||b.hp<=0)return;
+  const nm=bossName(b.tier);
+  showModal('👹 '+nm+'（'+b.tier+'阶）','<div class="big">👹</div>'+
+    '<p style="text-align:center">妖王生命：<b id="bossHpTxt">'+b.hp+'</b> / '+b.hpMax+'</p>'+
+    '<div style="height:14px;background:rgba(120,160,220,.35);border-radius:99px;overflow:hidden;margin:6px 0"><div id="bossBar" style="height:100%;width:'+Math.round(b.hp/b.hpMax*100)+'%;background:linear-gradient(90deg,#2aa7ff,#0f63c8)"></div></div>'+
+    '<p style="text-align:center;color:#33527f;font-size:12px">点触 ⚔️ 攻击！妖王每 1.5 秒反击（损失灵石），打不过就快逃。</p>'+
+    '<div style="display:flex;justify-content:center;gap:10px"><button id="bossAtk" style="background:linear-gradient(135deg,#ff6b6b,#ff9f43);color:#fff">⚔️ 攻击</button><button id="bossFlee" style="background:rgba(190,215,245,.8);border:1px solid rgba(90,150,220,.6);color:#1a4a86">🏃 逃离</button></div>');
+  const atk=document.getElementById('bossAtk');
+  const flee=document.getElementById('bossFlee');
+  const dmg=12+S.cat*2+(S.starUpgrades.income>0?4:0);
+  const deal=()=>{
+    if(!S.boss){stopBossFight();return;}
+    S.boss.hp-=dmg;
+    updateBossBar();
+    if(S.boss.hp<=0){
+      S.boss.hp=0;
+      stopBossFight();
+      const reward=Math.floor((3000+S.boss.tier*5000)*(1+0.5*S.rebirths));
+      const stars=Math.floor((5+S.boss.tier*5)*(1+0.3*S.rebirths));
+      S.gold+=reward;S.stardust+=stars;
+      S.bossesKilled++;
+      checkAchievements();
+      const rm=Math.random()<0.25;
+      let rareTxt='';
+      if(rm){
+        const avail=Object.keys(RARE_DEFS).filter(k=>!S.rareItems[k]);
+        if(avail.length){
+          const kk=avail[(Math.random()*avail.length)|0];
+          S.rareItems[kk]=true;
+          rareTxt='<p style="color:#b06a00;font-weight:bold">🌟 战利品：限定稀有道具 '+RARE_DEFS[kk].icon+' '+RARE_DEFS[kk].name+'！</p>';
+        }
+      }
+      S.boss=null;
+      showModal('🏆 剿灭成功！','<div class="big">🎉</div><p>你击败了 '+nm+'！</p><p style="color:#b06a00">+'+fmt(reward)+'💰 +'+stars+'✨</p>'+rareTxt);
+      refreshHUD();saveSoon();
+      return;
+    }
+    SFX.pop();
+  };
+  if(atk)atk.onclick=deal;
+  if(flee)flee.onclick=()=>{stopBossFight();showModal('🏃 逃离','<p>你明智地撤出了战斗……下次再会。</p>');};
+  stopBossFight();
+  bossFightTimer=setInterval(()=>{
+    if(!S.boss){stopBossFight();return;}
+    const loss=Math.max(40,Math.floor(rate()*3));
+    S.gold=Math.max(0,S.gold-loss);
+    SFX.explode();
+    FX.toast('👹 '+nm+' 反击！-'+fmt(loss)+'💰');
+    refreshHUD();saveSoon();
+  },1500);
+}
+function updateBossBar(){
+  const b=S.boss;
+  const t=document.getElementById('bossHpTxt');
+  const bar=document.getElementById('bossBar');
+  if(t)t.textContent=b.hp;
+  if(bar)bar.style.width=Math.max(0,Math.round(b.hp/b.hpMax*100))+'%';
+}
+function stopBossFight(){if(bossFightTimer){clearInterval(bossFightTimer);bossFightTimer=null;}}
+/* 游荡事件调度 */
+function wanderTick(){
+  const now=Date.now();
+  if(!S.boss&&now>S.bossNext)spawnBoss();
+  if(!S.merchant&&now>S.merchantNext)spawnMerchant();
+}
+/* 地图标记（Boss/商人） */
+function drawWorldMarkers(){
+  const s=view.scale,ox=view.x,oy=view.y;
+  const now=performance.now();
+  if(S.boss){
+    const b=S.boss;
+    const sx=(b.x+0.5-ox)*s,sy=(b.y+0.5-oy)*s;
+    if(sx>-30&&sy>-30&&sx<cw+30&&sy<ch+30){
+      const pulse=0.5+0.5*Math.sin(now/220);
+      gctx.strokeStyle='rgba(255,80,90,'+(0.4+0.5*pulse)+')';
+      gctx.lineWidth=2.5;
+      gctx.setLineDash([5,4]);
+      gctx.beginPath();
+      gctx.arc(sx,sy,Math.max(8,s*0.9),0,Math.PI*2);
+      gctx.stroke();
+      gctx.setLineDash([]);
+      gctx.font=(Math.max(12,Math.min(24,s*0.8)))+'px sans-serif';
+      gctx.textAlign='center';gctx.textBaseline='middle';
+      gctx.fillText('👹',sx,sy);
+    }
+  }
+  if(S.merchant){
+    const m=S.merchant;
+    const sx=(m.x+0.5-ox)*s,sy=(m.y+0.5-oy)*s;
+    if(sx>-30&&sy>-30&&sx<cw+30&&sy<ch+30){
+      gctx.font=(Math.max(11,Math.min(20,s*0.7)))+'px sans-serif';
+      gctx.textAlign='center';gctx.textBaseline='middle';
+      gctx.fillStyle='rgba(255,240,200,0.8)';
+      gctx.fillText('🧺',sx,sy);
+    }
+  }
+}
+function checkLakes(){
+  for(let i=0;i<S.lakeData.length;i++){
+    if(S.lakeBlessed&(1<<i))continue;
+    const lk=S.lakeData[i];
+    let all=true;
+    for(let k=0;k<lk.ring.length;k++){
+      if(!S.revMap[lk.ring[k]]){all=false;break;}
+    }
+    if(all){
+      S.lakeBlessed|=1<<i;
+      FX.toast('🧜‍♀️ 泉灵仙子赐福 Lv.'+lk.lv+'！灵气 +'+(lk.lv*10)+'%');
+      SFX.collect();
+      refreshHUD();saveSoon();
+    }
+  }
+}
+/* ---------- 业火窟喷发 ---------- */
+let volcanoCenter=null;
+function findVolcanoCenter(){
+  for(let i=0;i<N;i++)if(S.terrainMap[i]===2)return{x:i%W,y:(i/W)|0};
+  return null;
+}
+function eruptVolcano(){
+  if(!volcanoCenter)return;
+  const vx=volcanoCenter.x,vy=volcanoCenter.y;
+  FX.toast('🌋 业火窟喷发！周围 100 格内随机点开了 7 个格子');
+  SFX.blast();
+  shakeT=200;
+  /* 10 格内的灵狐受惊四散 */
+  for(const c of cats){
+    const cdx=c.x-0.5-vx,cdy=c.y-0.5-vy;
+    if(cdx*cdx+cdy*cdy<=100){
+      c.mode='flee';c.flee={x:vx,y:vy};c.fleeT=3+Math.random()*2;c.blink=false;
+    }
+  }
+  beginChange();
+  let done=0;
+  for(let t=0;t<200&&done<7;t++){
+    const dx=Math.round(Math.random()*200-100),dy=Math.round(Math.random()*200-100);
+    if(dx*dx+dy*dy>10000)continue;
+    const nx=vx+dx,ny=vy+dy;
+    if(!inB(nx,ny))continue;
+    const j=idx(nx,ny);
+    if(S.revMap[j]||isSolid(j))continue;
+    markRevealed(j);
+    done++;
+  }
+  endChange();
+  refreshHUD();saveSoon();
+}
+/* ---------- 九州天象：迷雾 / 夜幕 / 天狗食日 / 皓月当空 ---------- */
+let petalEls=[],nextEventAt=0;
+const TOPBAR_BASE='rgba(255,255,255,.85)';
+function startEvent(type){
+  const ev=EVENTS[type];
+  S.event={type,end:Date.now()+ev.dur};
+  if(!S.eventsSeen.includes(type))S.eventsSeen.push(type);
+  FX.toast('🌍 天象异动：'+ev.icon+' '+ev.name+'（'+(ev.mult!==1?'灵气 ×'+ev.mult:'无灵气影响')+'）');
+  SFX.coin();
+  /* 导航栏特效 */
+  const tb=document.getElementById('topbar');
+  if(tb)tb.style.background=ev.top;
+  /* 事件专属音乐 */
+  MUSIC.setStyle(ev.music||'normal');
+  /* 飘落粒子切换 */
+  for(const p of petalEls){
+    p.textContent=ev.petal;
+    if(ev.petal==='✨')p.style.fontSize=(8+Math.random()*10)+'px';
+  }
+  refreshHUD();
+}
+/* 环境飘落粒子：无事件时跟随季节 */
+function applyAmbientPetals(){
+  const se=seasonInfo();
+  for(const p of petalEls){
+    p.textContent=se.petal;
+    p.style.fontSize=(10+Math.random()*14)+'px';
+  }
+}
+function endEvent(){
+  S.event=null;
+  const tb=document.getElementById('topbar');
+  if(tb)tb.style.background=TOPBAR_BASE;
+  MUSIC.setStyle('normal');
+  applyAmbientPetals();
+  refreshHUD();
+}
+function eventTick(){
+  const now=Date.now();
+  if(S.event){
+    if(now>S.event.end)endEvent();
+    return;
+  }
+  if(now<nextEventAt)return;
+  startEvent(pickEvent());
+  nextEventAt=now+120000+Math.random()*120000;
+}
+/* 季节色调（轻微氛围色） */
+function drawSeasonTint(){
+  const se=seasonInfo();
+  gctx.fillStyle=se.tint;
+  gctx.fillRect(0,0,cw,ch);
+}
+function drawEventOverlay(){
+  if(!S.event)return;
+  const now=performance.now();
+  const t=Math.min(1,(S.event.end-Date.now())/5000); /* 渐入渐出 */
+  const ev=EVENTS[S.event.type];
+  if(ev.type==='fog'){
+    /* 迷雾：整体薄雾 + 缓慢漂移的雾团 */
+    gctx.fillStyle='rgba(185,195,215,'+(0.12*t)+')';
+    gctx.fillRect(0,0,cw,ch);
+    for(let i=0;i<7;i++){
+      const cyc=((now/9000)+i*0.37)%1;
+      const x=cyc*(cw+700)-350+Math.sin(now/3000+i*2.1)*120;
+      const y=(ch*0.18)+(i*137%Math.max(1,ch*0.7))+Math.sin(now/4200+i*1.3)*60;
+      const r=170+(i*89%190);
+      gctx.fillStyle='rgba(205,214,228,'+(0.10*(1-Math.abs(cyc*2-1))*t)+')';
+      gctx.beginPath();
+      gctx.ellipse(x,y,r,r*0.42,0,0,Math.PI*2);
+      gctx.fill();
+    }
+  }else if(ev.type==='night'){
+    /* 夜幕：深蓝夜空 + 闪烁繁星 + 偶发流星 + 萤火虫 */
+    gctx.fillStyle='rgba(5,7,36,'+(0.5*t)+')';
+    gctx.fillRect(0,0,cw,ch);
+    for(let i=0;i<80;i++){
+      const sx=(i*613)%cw,sy=(i*263)%ch;
+      const tw=0.25+0.75*Math.abs(Math.sin(now/700+i*1.7));
+      const big=(i%13===0)?2:1;
+      gctx.fillStyle='rgba(220,225,255,'+(0.35+0.6*tw)*t+')';
+      gctx.fillRect(sx,sy,big,big);
+    }
+    /* 流星（周期性划过） */
+    const mc=(now/7000)%1;
+    if(mc<0.25){
+      const mxx=cw*(0.15+mc*4),myy=ch*0.1+mc*ch*0.5;
+      gctx.strokeStyle='rgba(255,255,255,'+(0.7*(1-mc*4)*t)+')';
+      gctx.lineWidth=1.5;
+      gctx.beginPath();
+      gctx.moveTo(mxx,myy);
+      gctx.lineTo(mxx-40,myy+40);
+      gctx.stroke();
+    }
+    /* 萤火虫 */
+    for(let i=0;i<12;i++){
+      const fx=cw*(0.5+0.42*Math.sin(now/5200+i*2.4));
+      const fy=ch*(0.5+0.4*Math.cos(now/4300+i*3.1));
+      const glow=0.25+0.7*Math.abs(Math.sin(now/600+i*1.2));
+      gctx.fillStyle='rgba(255,224,120,'+(0.35+0.6*glow)*t+')';
+      gctx.beginPath();
+      gctx.arc(fx,fy,1.8+glow*1.6,0,Math.PI*2);
+      gctx.fill();
+    }
+  }else if(ev.type==='solar'){
+    /* 天狗食日：暖暗氛围 + 暗盘 + 金色日冕辉光 + 放射光芒 */
+    gctx.fillStyle='rgba(110,65,10,'+(0.2*t)+')';
+    gctx.fillRect(0,0,cw,ch);
+    const cx=cw*0.5,cy=ch*0.2,R=Math.min(cw,ch)*0.09;
+    /* 放射光芒 */
+    gctx.strokeStyle='rgba(255,205,95,'+(0.35+0.2*Math.sin(now/700))*t+')';
+    gctx.lineWidth=2;
+    for(let i=0;i<16;i++){
+      const a=i*Math.PI/8;
+      gctx.beginPath();
+      gctx.moveTo(cx+Math.cos(a)*R*0.9,cy+Math.sin(a)*R*0.9);
+      gctx.lineTo(cx+Math.cos(a)*(R*2.6),cy+Math.sin(a)*(R*2.6));
+      gctx.stroke();
+    }
+    /* 日冕辉光（多层） */
+    for(let k=3;k>=1;k--){
+      gctx.strokeStyle='rgba(255,205,95,'+(0.10/k+0.06*Math.sin(now/600+k))*t+')';
+      gctx.lineWidth=9*k;
+      gctx.beginPath();
+      gctx.arc(cx,cy,R+k*7,0,Math.PI*2);
+      gctx.stroke();
+    }
+    /* 明亮光环 */
+    gctx.strokeStyle='rgba(255,230,150,'+(0.75+0.25*Math.sin(now/450))*t+')';
+    gctx.lineWidth=3.5;
+    gctx.beginPath();
+    gctx.arc(cx,cy,R*1.02,0,Math.PI*2);
+    gctx.stroke();
+    /* 被遮住的暗盘 */
+    gctx.fillStyle='rgba(8,6,18,0.96)';
+    gctx.beginPath();
+    gctx.arc(cx,cy,R*0.9,0,Math.PI*2);
+    gctx.fill();
+  }else{ /* lunar 皓月当空：清辉夜幕 + 明月/弯月 + 飘散星辉 */
+    gctx.fillStyle='rgba(30,60,130,'+(0.22*t)+')';
+    gctx.fillRect(0,0,cw,ch);
+    const mx=cw*0.82,my=ch*0.16,R=Math.min(cw,ch)*0.085;
+    /* 明月清辉（冷白光晕，多层） */
+    for(let k=3;k>=1;k--){
+      gctx.strokeStyle='rgba(190,220,255,'+(0.10/k+0.04*Math.sin(now/800+k))*t+')';
+      gctx.lineWidth=9*k;
+      gctx.beginPath();
+      gctx.arc(mx,my,R+k*7,0,Math.PI*2);
+      gctx.stroke();
+    }
+    /* 弯月本体（银白，带环形山暗纹） */
+    gctx.fillStyle='rgba(245,250,255,'+(0.95*t)+')';
+    gctx.beginPath();
+    gctx.arc(mx,my,R,0,Math.PI*2);
+    gctx.fill();
+    gctx.fillStyle='rgba(150,180,220,'+(0.4*t)+')';
+    gctx.beginPath();gctx.arc(mx-R*0.3,my-R*0.25,R*0.22,0,Math.PI*2);gctx.fill();
+    gctx.beginPath();gctx.arc(mx+R*0.35,my+R*0.1,R*0.16,0,Math.PI*2);gctx.fill();
+    gctx.beginPath();gctx.arc(mx-R*0.05,my+R*0.4,R*0.12,0,Math.PI*2);gctx.fill();
+    /* 飘散星辉 */
+    for(let i=0;i<12;i++){
+      const cyc=(now/1500+i*0.27)%1;
+      const ex=mx+Math.sin(cyc*6.28+i*2.4)*R*4.2;
+      const ey=my+R*2.6+cyc*ch*0.5;
+      gctx.fillStyle='rgba(220,235,255,'+((1-cyc)*t)+')';
+      gctx.beginPath();
+      gctx.arc(ex,ey,1.5,0,Math.PI*2);
+      gctx.fill();
+    }
+  }
+}
+let cw=0,ch=0,dpr=1,view={x:0,y:0,scale:22},hover=null;
+function fitScale(){return Math.min(cw/W,ch/H)*0.98;}
+function clampTarget(){
+  const s=view.scale;
+  /* 缩放到最小时将地图置于视口中央 */
+  if(s<=fitScale()*1.02){
+    return{x:(W-cw/s)/2,y:(H-ch/s)/2};
+  }
+  const maxX=W-cw/s+8,maxY=H-ch/s+8;
+  return{x:clamp(view.x,-8,Math.max(-8,maxX)),y:clamp(view.y,-8,Math.max(-8,maxY))};
+}
+function clampView(){
+  const t=clampTarget();
+  view.x=t.x;view.y=t.y;
+}
+/* 拖拽时的软边界：超出部分带回弹阻尼 */
+function softClampView(){
+  const t=clampTarget();
+  const ox=view.x-t.x,oy=view.y-t.y;
+  if(ox!==0)view.x=t.x+ox*0.35;
+  if(oy!==0)view.y=t.y+oy*0.35;
+}
+/* 松开后的回弹 */
+function springView(dt){
+  if(down)return;
+  const t=clampTarget();
+  const k=Math.min(1,dt*0.025);
+  if(view.x!==t.x)view.x+=(t.x-view.x)*k;
+  if(view.y!==t.y)view.y+=(t.y-view.y)*k;
+}
+function centerOn(mx,my){view.x=mx-cw/(2*view.scale);view.y=my-ch/(2*view.scale);clampView();}
+function zoomAt(cx,cy,f){
+  const mx=view.x+cx/view.scale,my=view.y+cy/view.scale;
+  view.scale=clamp(view.scale*f,fitScale(),64);
+  view.x=mx-cx/view.scale;view.y=my-cy/view.scale;
+  clampView();
+}
+function mapToScreen(mx,my){return{x:(mx-view.x)*view.scale,y:(my-view.y)*view.scale};}
+function resize(){
+  cw=stage.clientWidth;ch=stage.clientHeight;
+  dpr=Math.min(2,window.devicePixelRatio||1);
+  game.width=Math.round(cw*dpr);game.height=Math.round(ch*dpr);
+  fxc.width=Math.round(cw*dpr);fxc.height=Math.round(ch*dpr);
+  game.style.width=cw+'px';game.style.height=ch+'px';
+  fxc.style.width=cw+'px';fxc.style.height=ch+'px';
+  gctx.setTransform(dpr,0,0,dpr,0,0);
+  fctx.setTransform(dpr,0,0,dpr,0,0);
+  clampView();
+}
+window.addEventListener('resize',resize);
+
+/* ---------- 输入（含触屏：旗子模式/长按插旗/双指缩放） ---------- */
+let down=false,moved=false,downX=0,downY=0,panX=0,panY=0;
+let flagMode=false,longTimer=null,longCell=null,longFired=false,pinchDist=0,pinchMid=null;
+const pointers={};
+function canvasPos(e){const r=game.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function setFlagMode(v){flagMode=v;const b=$('flagBtn');if(b)b.classList.toggle('active',v);}
+function cancelLong(){if(longTimer){clearTimeout(longTimer);longTimer=null;}}
+game.addEventListener('pointerdown',e=>{
+  SFX.unlock();MUSIC.unlock();
+  pointers[e.pointerId]={x:e.clientX,y:e.clientY};
+  const ids=Object.keys(pointers);
+  if(ids.length>=2){ /* 双指捏合缩放 */
+    cancelLong();down=false;
+    pinchDist=Math.hypot(pointers[ids[0]].x-pointers[ids[1]].x,pointers[ids[0]].y-pointers[ids[1]].y)||1;
+    const r=game.getBoundingClientRect();
+    pinchMid={x:(pointers[ids[0]].x+pointers[ids[1]].x)/2-r.left,y:(pointers[ids[0]].y+pointers[ids[1]].y)/2-r.top};
+    return;
+  }
+  if(e.button!==0&&e.pointerType==='mouse')return; /* 神识右键留给插旗 */
+  down=true;moved=false;downX=e.clientX;downY=e.clientY;
+  panX=view.x;panY=view.y;
+  try{game.setPointerCapture(e.pointerId);}catch(_){}
+  if(e.pointerType!=='mouse'){ /* 触屏长按插旗 */
+    longFired=false;
+    cancelLong();
+    const cx=Math.floor(view.x+canvasPos(e).x/view.scale),cy=Math.floor(view.y+canvasPos(e).y/view.scale);
+    longCell={x:cx,y:cy};
+    longTimer=setTimeout(()=>{
+      if(!down||moved||S.armed)return;
+      longFired=true;
+      if(inB(longCell.x,longCell.y))handleRight(longCell.x,longCell.y);
+    },450);
+  }
+});
+game.addEventListener('pointermove',e=>{
+  if(pointers[e.pointerId])pointers[e.pointerId]={x:e.clientX,y:e.clientY};
+  const ids=Object.keys(pointers);
+  if(ids.length>=2&&pinchDist>0){
+    const d=Math.hypot(pointers[ids[0]].x-pointers[ids[1]].x,pointers[ids[0]].y-pointers[ids[1]].y);
+    if(pinchMid&&d>0)zoomAt(pinchMid.x,pinchMid.y,d/pinchDist);
+    pinchDist=d;
+    return;
+  }
+  const p=canvasPos(e);
+  const cx=Math.floor(view.x+p.x/view.scale),cy=Math.floor(view.y+p.y/view.scale);
+  hover=inB(cx,cy)?{x:cx,y:cy,sx:p.x,sy:p.y}:null;
+  if(down){
+    const dx=e.clientX-downX,dy=e.clientY-downY;
+    if(Math.abs(dx)+Math.abs(dy)>5){moved=true;cancelLong();}
+    if(moved){view.x=panX-dx/view.scale;view.y=panY-dy/view.scale;softClampView();}
+  }
+});
+game.addEventListener('pointerup',e=>{
+  delete pointers[e.pointerId];
+  cancelLong();
+  if(Object.keys(pointers).length<2){pinchDist=0;pinchMid=null;}
+  if(!down)return;
+  down=false;
+  if(e.button!==0&&e.pointerType==='mouse')return;
+  if(longFired){longFired=false;return;}
+  if(moved)return;
+  const p=canvasPos(e);
+  const cx=Math.floor(view.x+p.x/view.scale),cy=Math.floor(view.y+p.y/view.scale);
+  if(inB(cx,cy)){
+    if(flagMode&&!S.armed)handleRight(cx,cy);
+    else handleClick(cx,cy);
+  }
+});
+game.addEventListener('pointercancel',e=>{delete pointers[e.pointerId];down=false;cancelLong();pinchDist=0;pinchMid=null;});
+game.addEventListener('pointerleave',()=>{hover=null;});
+game.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const p=canvasPos(e);
+  zoomAt(p.x,p.y,Math.exp(-e.deltaY*0.0012));
+},{passive:false});
+game.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  const p=canvasPos(e);
+  const cx=Math.floor(view.x+p.x/view.scale),cy=Math.floor(view.y+p.y/view.scale);
+  if(inB(cx,cy))handleRight(cx,cy);
+});
+function handleClick(x,y){
+  if(!inB(x,y))return;
+  const i=idx(x,y);
+  /* 野外妖王 / 游方仙商：靠近即触发 */
+  if(S.boss&&Math.abs(S.boss.x-x)<=1&&Math.abs(S.boss.y-y)<=1){openBossBattle();return;}
+  if(S.merchant&&Math.abs(S.merchant.x-x)<=1&&Math.abs(S.merchant.y-y)<=1){openMerchant();return;}
+  const t=S.terrainMap[i];
+  if(t===1||t===2||t===3){
+    const names={1:'灵泉',2:'业火窟',3:'九州天壁'};
+    FX.toast('⛔ 此处为'+names[t]+'，无法探索');
+    return;
+  }
+  if(t===5&&S.revMap[i]){openDungeon(dungeonIdAtPortal(i));return;} /* 秘境遁移阵 */
+  if(S.armed){
+    if(S.armed==='anchor'){useAnchor(x,y);return;}
+    if(S.armed==='foil'){activateFoil(x,y);return;}
+    if(!withinRevealRange(x,y)){FX.toast('⚠️ 落点距已探索区域超过 20 格');return;}
+    if(S.armed==='miner')deployMiner(x,y);
+    else if(S.armed==='probe'&&S.items.probe>0)useProbe(x,y);
+    else if(S.armed==='blast'&&S.items.blast>0)useBlast(x,y);
+    else if(S.armed==='teleport'&&S.items.teleport>0)useTeleport(x,y);
+    else if(S.armed==='autoprobe')setAutoProbe(x,y);
+    return;
+  }
+  if(S.revMap[i]){
+    if(S.mineMap[i])return;
+    chord(x,y);
+    return;
+  }
+  if(!withinRevealRange(x,y)){FX.toast('⚠️ 距已探索区域超过 20 格，无法翻开');return;}
+  const r=revealAt(x,y);
+  if(!r.exploded)FX.pop();
+}
+function handleRight(x,y){
+  if(S.armed){setArmed(null);return;}
+  const i=idx(x,y);
+  if(S.revMap[i])return;
+  S.flagMap[i]^=1;
+  paintPx(i);
+  FX.flag();
+  refreshHUD();
+}
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  const step=40/view.scale;
+  if(k==='arrowleft'||k==='a')view.x-=step;
+  else if(k==='arrowright'||k==='d')view.x+=step;
+  else if(k==='arrowup'||k==='w')view.y-=step;
+  else if(k==='arrowdown'||k==='s')view.y+=step;
+  else if(k==='+'||k==='=')zoomAt(cw/2,ch/2,1.25);
+  else if(k==='-')zoomAt(cw/2,ch/2,0.8);
+  else if(k==='c')centerOn(W/2,H/2);
+  else if(k==='1')handleSlotAction(S.hotbar[0]);
+  else if(k==='2')handleSlotAction(S.hotbar[1]);
+  else if(k==='3')handleSlotAction(S.hotbar[2]);
+  else if(k==='4')handleSlotAction(S.hotbar[3]);
+  else if(k==='5')handleSlotAction(S.hotbar[4]);
+  else if(k==='6')handleSlotAction(S.hotbar[5]);
+  else if(k==='7')handleSlotAction(S.hotbar[6]);
+  else if(k==='8')handleSlotAction(S.hotbar[7]);
+  else if(k==='escape'){ if(!$('popup').classList.contains('hidden'))closePopup(); else setArmed(null); }
+  else if(k==='f')setFlagMode(!flagMode);
+  clampView();
+});
+minimap.addEventListener('pointerdown',e=>{
+  const r=minimap.getBoundingClientRect();
+  const blk=mmBlk();
+  const px=Math.floor((e.clientX-r.left)/r.width*MM),py=Math.floor((e.clientY-r.top)/r.height*MM);
+  const mx=Math.min(W-1,mmView.ox+px*blk+blk/2),my=Math.min(H-1,mmView.oy+py*blk+blk/2);
+  view.scale=clamp(view.scale*1.5,fitScale(),64); /* 点触小地图放大主视图 */
+  centerOn(mx,my);
+  /* 小地图视图中心跟随点触，便于在放大的小地图上平移 */
+  mmView.ox=mx-mmView.half;mmView.oy=my-mmView.half;
+  mmViewClamp();
+  redrawMinimapView();
+});
+
+/* ---------- 道具 ---------- */
+setArmed=function(k){S.armed=k;refreshHUD();};
+function toggleArm(k){
+  if(k==='probe'&&S.items.probe<=0)return;
+  if(k==='blast'&&S.items.blast<=0)return;
+  if(k==='miner'&&S.items.miner<=0)return;
+  if(k==='teleport'&&S.items.teleport<=0)return;
+  if(k==='autoprobe'&&S.items.autoprobe<=0)return;
+  if(k==='anchor'&&S.worldItems.anchor!==1)return;
+  if(k==='foil'&&S.worldItems.foil!==1)return;
+  setArmed(S.armed===k?null:k);
+}
+function buyItem(k){
+  let cost;
+  if(k==='probe')cost=costProbe();
+  else if(k==='blast')cost=costBlast();
+  else if(k==='miner')cost=costMiner();
+  else if(k==='cat')cost=costCat();
+  else if(k==='treasure')cost=costTreasure();
+  else if(k==='shield')cost=costShield();
+  else if(k==='hourglass')cost=costHourglass();
+  else if(k==='teleport')cost=costTeleport();
+  else if(k==='autoprobe')cost=COST_AUTOPROBE;
+  else if(k==='herosword')cost=COST_HERO_SWORD;
+  else if(k==='anchor')cost=COST_ANCHOR;
+  else if(k==='foil')cost=COST_FOIL;
+  else return;
+  if(cost>S.gold)return; /* 灵石不足则不生效（按钮平时已禁用） */
+  S.gold-=cost;
+  if(k==='probe'){S.items.probe++;if(!S.armed)setArmed('probe');}
+  else if(k==='blast'){S.items.blast++;if(!S.armed)setArmed('blast');}
+  else if(k==='miner'){S.pendingMinerCost=cost;S.items.miner++;if(!S.armed)setArmed('miner');}
+  else if(k==='cat'){S.cat++;}
+  else if(k==='treasure'){S.treasureMap=true;showTreasureModal();}
+  else if(k==='shield'){S.items.shield++;FX.shield(0,0);}
+  else if(k==='hourglass'){S.items.hourglass++;}
+  else if(k==='teleport'){S.items.teleport++;}
+  else if(k==='autoprobe'){S.items.autoprobe=1;setArmed('autoprobe');FX.toast('📡 已购买巡灵傀儡，点触地图设置探测点');}
+  else if(k==='herosword'){S.heroSword=true;showHeroSwordModal();}
+  else if(k==='anchor'){S.worldItems.anchor=1;setArmed('anchor');FX.toast('🗼 定界碑已就绪：点触地图任意位置召唤锚枪（无视距离）');}
+  else if(k==='foil'){S.worldItems.foil=1;setArmed('foil');FX.toast('📄 开天符已就绪：点触地图任意位置展开（无视距离）');}
+  SFX.coin();refreshHUD();saveSoon();
+}
+function activateHourglass(){
+  if(S.items.hourglass<=0){buyItem('hourglass');return;}
+  S.items.hourglass--;
+  S.boost=30;
+  SFX.boost();FX.toast('⏳ 光阴砂漏：灵气 ×2，持续 30 秒！');
+  refreshHUD();saveSoon();
+}
+function useTeleport(x,y){
+  if(S.items.teleport<=0){setArmed(null);return;}
+  S.items.teleport--;
+  centerOn(x,y);
+  setArmed(null);
+  SFX.teleport();FX.toast('📜 遁移至 ('+(x-(W>>1))+', '+((H>>1)-y)+')');
+  refreshHUD();saveSoon();
+}
+function setAutoProbe(x,y){
+  S.autoProbe={x,y};
+  setArmed(null);
+  FX.toast('📡 巡灵傀儡已部署，每 10 秒探测 ('+(x-(W>>1))+', '+((H>>1)-y)+')');
+  refreshHUD();saveSoon();
+}
+function buyStar(k){
+  const c=starCost(k);
+  if(S.stardust<c)return;
+  S.stardust-=c;
+  S.starUpgrades[k]++;
+  SFX.coin();refreshHUD();saveSoon();
+}
+/* ---------- 先天灵宝 ---------- */
+function useAnchor(x,y){
+  if(S.worldItems.anchor!==1){setArmed(null);return;}
+  S.worldItems.anchor=2; /* 一次性 */
+  beginChange();
+  for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+    const nx=x+ox,ny=y+oy;
+    if(!inB(nx,ny))continue;
+    const j=idx(nx,ny);
+    if(!S.revMap[j])markRevealed(j);
+  }
+  endChange();
+  setArmed(null);
+  FX.anchor(x,y);
+  SFX.teleport();
+  refreshHUD();saveSoon();
+}
+function activateFoil(x,y){
+  if(S.worldItems.foil!==1){setArmed(null);return;}
+  S.worldItems.foil=2;
+  /* 完全覆盖所需的切比雪夫半径：起点到最远角落的距离 */
+  S.foil={x,y,r:0,active:true,maxR:Math.max(x,W-1-x,y,H-1-y)};
+  setArmed(null);
+  FX.toast('📄 开天符展开！天地正以每秒 10 格的速度被揭开……');
+  SFX.blast();
+  refreshHUD();saveSoon();
+}
+function foilTick(){
+  const f=S.foil;
+  if(!f||!f.active)return;
+  const r0=f.r;f.r+=FOIL_SPEED;const r1=f.r;
+  beginChange();
+  const y0=Math.max(0,f.y-r1),y1=Math.min(H-1,f.y+r1);
+  const x0=Math.max(0,f.x-r1),x1=Math.min(W-1,f.x+r1);
+  for(let y=y0;y<=y1;y++){
+    const row=y*W;
+    for(let x=x0;x<=x1;x++){
+      const d=Math.max(Math.abs(x-f.x),Math.abs(y-f.y));
+      if(d>r0&&d<=r1){
+        const j=row+x;
+        if(!S.revMap[j]&&!isSolid(j))markRevealed(j);
+      }
+    }
+  }
+  endChange();
+  refreshHUD();saveSoon();
+  if(r1>=f.maxR){ /* 半径覆盖全图最远角落 → 完成（环带扫描已保证全覆盖） */
+    f.active=false;
+    FX.toast('🌌 开天符完成：整个九州已被揭开！');
+    refreshHUD();saveSoon();
+  }
+}
+/* ---------- 天劫罚世：灵石归零时的惩罚 ---------- */
+function meteorRain(){
+  FX.toast('☄️ 天劫罚世降临！部分已探索区域被摧毁，收益下降！');
+  shakeT=500;SFX.explode();
+  const cleared=[];
+  for(let i=0;i<N;i++){
+    if(S.revMap[i]&&Math.random()<0.2){
+      if(!S.mineMap[i]&&S.numMap[i]>0)S.revealedSum-=S.numMap[i];
+      S.revMap[i]=0;S.craterMap[i]=0;
+      S.stats.revealedCount--;
+      cleared.push(i);
+    }
+  }
+  for(const i of cleared)paintPx(i);
+  updateMinimapFull();
+  decos=decos.filter(d=>S.revMap[idx(d.x,d.y)]);
+  for(const c of cats){
+    const j=idx(Math.floor(c.x),Math.floor(c.y));
+    if(!S.revMap[j]){const p=randomZeroPos();c.x=p.x+0.5;c.y=p.y+0.5;c.tx=c.x;c.ty=c.y;}
+  }
+  refreshHUD();saveSoon();
+}
+/* ---------- 魔宗禁地 · 洞天秘境（5 层结构洞府） ---------- */
+let dungeon=null;
+const DUN_FLOORS=5;
+const DT={EMPTY:0,CHEST:1,TRAP:2,MONSTER:3,STAIRS:4,DOOR:5};
+function genDungeonFloor(){
+  const D=18,cells=new Uint8Array(D*D);
+  /* 房间 */
+  const rooms=[];
+  for(let k=0;k<6;k++){
+    const w=3+((Math.random()*4)|0),h=3+((Math.random()*4)|0);
+    const rx=1+((Math.random()*(D-w-2))|0),ry=1+((Math.random()*(D-h-2))|0);
+    rooms.push({rx,ry,w,h});
+    for(let y=ry;y<ry+h;y++)for(let x=rx;x<rx+w;x++)cells[y*D+x]=DT.EMPTY;
+  }
+  /* 走廊连接相邻房间中心 */
+  for(let k=1;k<rooms.length;k++){
+    const a=rooms[k-1],b=rooms[k];
+    let cx=a.rx+(a.w>>1),cy=a.ry+(a.h>>1);
+    const tx=b.rx+(b.w>>1),ty=b.ry+(b.h>>1);
+    while(cx!==tx){cells[cy*D+cx]=DT.EMPTY;cx+=cx<tx?1:-1;}
+    while(cy!==ty){cells[cy*D+cx]=DT.EMPTY;cy+=cy<ty?1:-1;}
+  }
+  /* 灵梯：置于最后一间房 */
+  const lr=rooms[rooms.length-1];
+  const stairs=((lr.ry+((Math.random()*lr.h)|0))*D)+(lr.rx+((Math.random()*lr.w)|0));
+  cells[stairs]=DT.STAIRS;
+  /* 禁制之门：堵住灵梯房间入口（第 2 层起需要符钥） */
+  let door=-1;
+  if(dungeon&&dungeon.floor>1){
+    const sx=stairs%D,sy=(stairs/D)|0;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=sx+dx,ny=sy+dy;
+      if(nx<0||ny<0||nx>=D||ny>=D)continue;
+      if(cells[ny*D+nx]!==DT.EMPTY)continue;
+      door=ny*D+nx;cells[door]=DT.DOOR;break;
+    }
+  }
+  /* 随机撒布妖兽 / 灵匣 / 法阵 */
+  const scatter=(t,n)=>{
+    let placed=0,g=0;
+    while(placed<n&&g<400){
+      g++;
+      const p=(Math.random()*(D*D))|0;
+      if(cells[p]!==DT.EMPTY)continue;
+      cells[p]=t;placed++;
+    }
+  };
+  scatter(DT.CHEST,3+((Math.random()*3)|0));
+  scatter(DT.MONSTER,4+((Math.random()*3)|0));
+  scatter(DT.TRAP,4+((Math.random()*4)|0));
+  return{cells,stairs,door};
+}
+function openDungeon(id){
+  const def=S.dungeons[id]||S.dungeons[0];
+  if(!def)return;
+  if(!dungeon)dungeon={id:def.id,floor:1,hp:100,maxHp:100,keys:0,loot:0,stars:0,over:false,floors:def.floors,base:def.base,def,lastX:-1,lastY:-1,hintTarget:-1};
+  else{
+    dungeon.id=def.id;dungeon.floor=1;dungeon.hp=100;dungeon.keys=0;dungeon.over=false;
+    dungeon.floors=def.floors;dungeon.base=def.base;dungeon.def=def;
+    dungeon.lastX=-1;dungeon.lastY=-1;dungeon.hintTarget=-1;
+  }
+  const fl=genDungeonFloor();
+  dungeon.D=18;dungeon.cells=fl.cells;dungeon.revealed=new Uint8Array(18*18);
+  dungeon.stairs=fl.stairs;dungeon.door=fl.door;
+  renderDungeon();
+}
+function dungeonUI(){
+  const d=dungeon;
+  return '<p style="text-align:center;color:#33527f;font-size:13px;margin-bottom:4px">第 <b style="color:#b06a00">'+d.floor+'</b> / '+DUN_FLOORS+' 层 · ❤️ 气血 <b id="dunHp">'+d.hp+'</b> · 🗝️ 符钥 <b id="dunKeys">'+d.keys+'</b> · 💰 收获 '+fmt(d.loot)+'</p>'+
+    '<canvas id="dungeonCv" width="324" height="324" style="border:2px solid rgba(90,150,220,.7);border-radius:10px;display:block;margin:8px auto;cursor:pointer;background:#eaf4fd"></canvas>'+
+    '<p style="text-align:center;font-size:11px;color:#5a7297">🎁灵匣 · 🕳️法阵 · 👹妖兽 · ⬇️灵梯 · 🚪禁制之门（需符钥）</p>'+
+    '<div style="display:flex;justify-content:center;gap:10px;margin-top:4px"><button id="dunExit" style="background:rgba(190,215,245,.8);border:1px solid rgba(90,150,220,.6);color:#1a4a86;border-radius:999px;padding:5px 16px;font-size:12px">离开秘境（保留收获）</button></div>';
+}
+function renderDungeon(){
+  const d=dungeon;
+  if(!d)return;
+  showModal('🏰 魔宗禁地洞天 · 第 '+d.floor+' 层',dungeonUI());
+  const cv=document.getElementById('dungeonCv');
+  if(cv)cv.onclick=e=>{
+    const r=cv.getBoundingClientRect();
+    const px=Math.floor((e.clientX-r.left)/cv.width*d.D),py=Math.floor((e.clientY-r.top)/cv.height*d.D);
+    dungeonDig(px,py);
+  };
+  const ex=document.getElementById('dunExit');
+  if(ex)ex.onclick=()=>dungeonEnd('🏃 撤离秘境','<p>你带着收获离开了洞天。</p><p>本次共收获 '+fmt(d.loot)+'💰'+(d.stars?' 与 '+d.stars+'✨':'')+'。</p>');
+  drawDungeon();
+  refreshHudDungeon();
+}
+function refreshHudDungeon(){
+  const d=dungeon;
+  const hp=document.getElementById('dunHp');if(hp)hp.textContent=d.hp;
+  const kk=document.getElementById('dunKeys');if(kk)kk.textContent=d.keys;
+}
+function dungeonDig(px,py){
+  const d=dungeon;
+  if(!d||d.over||px<0||py<0||px>=d.D||py>=d.D)return;
+  const i=py*d.D+px;
+  if(d.revealed[i])return;
+  d.revealed[i]=1;
+  d.lastX=px;d.lastY=py; /* 记录最近点触位置，用于寻路提示 */
+  const t=d.cells[i];
+  if(t===DT.STAIRS){
+    SFX.teleport();
+    if(d.floor>=d.floors){
+      d.over=true;
+      const def=d.def;
+      const rb=1+0.25*S.rebirths; /* 轮回解锁：洞天奖励增长 */
+      const reward=Math.floor((30000+d.floors*8000)*rb),stars=Math.floor((10+d.floors*5)*rb);
+      d.loot+=reward;d.stars+=stars;
+      S.gold+=reward;S.stardust+=stars;
+      S.stats.dungeonWins++;
+      let rareTxt='';
+      if(!S.rareItems[def.rare]){
+        S.rareItems[def.rare]=true;
+        const rd=RARE_DEFS[def.rare];
+        rareTxt='<p style="color:#b06a00;font-weight:bold">限 定 稀 有 道 具 获 得：'+rd.icon+' '+rd.name+'（'+rd.desc+'）</p>';
+        FX.toast('🌟 限定稀有道具：'+rd.name+'！'+rd.desc);
+        SFX.collect();
+      }
+      checkAchievements();
+      dungeonEnd('👑 「'+def.name+'」剿灭成功！','<div class="big">🎉 +'+fmt(reward)+'💰 +'+stars+'✨</div>'+rareTxt+'<p>本次共收获 '+fmt(d.loot)+'💰 与 '+d.stars+'✨。</p>');
+      refreshHUD();saveSoon();
+      return;
+    }
+    d.floor++;
+    d.hp=Math.min(d.maxHp,d.hp+15); /* 向下层的喘息 */
+    const fl=genDungeonFloor();
+    d.cells=fl.cells;d.revealed=new Uint8Array(d.D*d.D);d.stairs=fl.stairs;d.door=fl.door;
+    d.lastX=-1;d.lastY=-1;d.hintTarget=-1;
+    const bonus=d.floor*2000;
+    d.loot+=bonus;S.gold+=bonus;
+    FX.toast('⬇️ 进入第 '+d.floor+' 层！+'+fmt(bonus)+'💰（气血 +15）');
+    renderDungeon();
+    refreshHUD();saveSoon();
+    return;
+  }
+  if(t===DT.DOOR){
+    if(d.keys>0){
+      d.keys--;SFX.flag();FX.toast('🗝️ 符钥打开了禁制之门！');
+    }else{
+      d.revealed[i]=0;
+      FX.toast('🔒 禁制之门被锁住了，需要一把符钥（灵匣中有几率获得）');
+    }
+    drawDungeon();refreshHudDungeon();
+    return;
+  }
+  if(t===DT.CHEST){
+    const roll=Math.random();
+    let txt='';
+    if(roll<0.30){const g=(500+d.floor*500)|0;S.gold+=g;d.loot+=g;txt='💰 灵匣灵石 +'+fmt(g);SFX.coin();}
+    else if(roll<0.45){const st=5+((Math.random()*5)|0);S.stardust+=st;d.stars+=st;txt='✨ 道韵灵匣 +'+st;SFX.collect();}
+    else if(roll<0.60){S.items.shield++;txt='🛡️ 获得玄光盾 ×1';SFX.coin();}
+    else if(roll<0.75){S.items.hourglass++;txt='⏳ 获得光阴砂漏 ×1';SFX.coin();}
+    else if(roll<0.90){const h=10+((Math.random()*15)|0);d.hp=Math.min(d.maxHp,d.hp+h);txt='🍖 灵膳：气血 +'+h;SFX.pop();}
+    else{d.keys++;txt='🗝️ 找到符钥 ×1！';SFX.collect();}
+    FX.toast('🎁 '+txt);
+  }else if(t===DT.TRAP){
+    const dmg=8+d.floor*2+((Math.random()*6)|0);
+    d.hp-=dmg;
+    SFX.explode();
+    FX.toast('💥 踩中法阵 -'+dmg+' 气血');
+  }else if(t===DT.MONSTER){
+    const rb=1+0.25*S.rebirths;
+    const mlv=(d.base||0)+d.floor+((Math.random()*2)|0)+Math.floor(S.rebirths/2);
+    const dmg=5+(d.floor+d.base)*3+((Math.random()*8)|0)+Math.floor(S.rebirths/2)*2;
+    const loot=Math.floor((300+d.floor*400)*rb);
+    d.hp-=dmg;S.gold+=loot;d.loot+=loot;
+    SFX.explode();
+    FX.toast('⚔️ 击败 '+mlv+'阶妖兽！+'+fmt(loot)+'💰（受到 '+dmg+' 伤害）');
+  }else if(Math.random()<0.12){
+    const g=20+((Math.random()*40)|0);
+    S.gold+=g;d.loot+=g;
+    FX.toast('🪙 发现散落灵石 +'+g);
+    SFX.coin();
+  }
+  if(d.hp<=0){
+    d.over=true;
+    dungeonEnd('💀 气血耗尽','<p>你在第 '+d.floor+' 层倒下，带着收获离开了洞天……</p><p>本次共收获 '+fmt(d.loot)+'💰'+(d.stars?' 与 '+d.stars+'✨':'')+'。</p>');
+  }else{
+    dungeonHint();
+    drawDungeon();refreshHudDungeon();
+  }
+  refreshHUD();saveSoon();
+}
+function dungeonHint(){
+  const d=dungeon;
+  if(!d||d.lastX<0)return;
+  /* 找最近的未翻开特殊格（灵匣/法阵/妖兽/灵梯/门） */
+  let best=-1,bestD=Infinity;
+  for(let i=0;i<d.D*d.D;i++){
+    if(d.revealed[i])continue;
+    const t=d.cells[i];
+    if(t===DT.CHEST||t===DT.TRAP||t===DT.MONSTER||t===DT.STAIRS||t===DT.DOOR){
+      const dx=(i%d.D)-d.lastX,dy=((i/d.D)|0)-d.lastY;
+      const dd=dx*dx+dy*dy;
+      if(dd<bestD){bestD=dd;best=i;}
+    }
+  }
+  d.hintTarget=best;
+}
+function dungeonEnd(title,html){
+  dungeon=null;
+  showModal(title,html);
+  refreshHUD();saveSoon();
+}
+function drawDungeon(){
+  const d=dungeon;
+  const cv=document.getElementById('dungeonCv');
+  if(!d||!cv)return;
+  const cx=cv.getContext('2d');
+  const s=cv.width/d.D;
+  cx.font=(s*0.7)+'px sans-serif';cx.textAlign='center';cx.textBaseline='middle';
+  for(let y=0;y<d.D;y++)for(let x=0;x<d.D;x++){
+    const i=y*d.D+x;
+    const sx=x*s,sy=y*s;
+    if(!d.revealed[i]){
+      cx.fillStyle='#bcd6ee'; /* 未翻开（迷雾）：浅蓝 */
+      cx.fillRect(sx,sy,s-1,s-1);
+      continue;
+    }
+    const t=d.cells[i];
+    if(t===DT.EMPTY){cx.fillStyle='#eef6ff';cx.fillRect(sx,sy,s-1,s-1);} /* 已翻开空格：亮白，与迷雾色差大 */
+    else if(t===DT.CHEST){cx.fillStyle='#ffe3b3';cx.fillRect(sx,sy,s-1,s-1);cx.fillText('🎁',sx+s/2,sy+s/2);}
+    else if(t===DT.TRAP){cx.fillStyle='#ffd0d0';cx.fillRect(sx,sy,s-1,s-1);cx.fillText('🕳️',sx+s/2,sy+s/2);}
+    else if(t===DT.MONSTER){cx.fillStyle='#ffc2c2';cx.fillRect(sx,sy,s-1,s-1);cx.fillText('👹',sx+s/2,sy+s/2);}
+    else if(t===DT.STAIRS){cx.fillStyle='#cde9ff';cx.fillRect(sx,sy,s-1,s-1);cx.fillText('⬇️',sx+s/2,sy+s/2);}
+    else if(t===DT.DOOR){cx.fillStyle='#d6d0ff';cx.fillRect(sx,sy,s-1,s-1);cx.fillText('🚪',sx+s/2,sy+s/2);}
+  }
+  /* 寻路箭头：从"最近点触的格子"开始，指向最近的灵匣/法阵/妖兽/灵梯（金色脉冲箭头带） */
+  if(d.lastX>=0&&d.hintTarget>=0){
+    const tx=d.hintTarget%d.D,ty=(d.hintTarget/d.D)|0;
+    const drawArrow=(ax,ay,ang,ph)=>{
+      cx.save();
+      cx.translate(ax,ay);
+      cx.rotate(ang);
+      cx.fillStyle='rgba(255,209,102,'+(0.55+0.45*Math.sin(performance.now()/250+ph)).toFixed(2)+')';
+      cx.beginPath();
+      cx.moveTo(s*0.42,0);
+      cx.lineTo(-s*0.22,-s*0.2);
+      cx.lineTo(-s*0.22,s*0.2);
+      cx.closePath();
+      cx.fill();
+      cx.restore();
+    };
+    /* 起点：当前点开的格子上的箭头 */
+    drawArrow(d.lastX*s+s/2,d.lastY*s+s/2,Math.atan2(ty-d.lastY,tx-d.lastX),0);
+    /* 后续路径箭头（只画在已翻开的格子上） */
+    let px=d.lastX,py=d.lastY,guard=0,ph=1;
+    while((px!==tx||py!==ty)&&guard++<d.D*2){
+      const dx=tx-px,dy=ty-py;
+      if(Math.abs(dx)>=Math.abs(dy))px+=dx>0?1:-1;else py+=dy>0?1:-1;
+      const idx=py*d.D+px;
+      if(!d.revealed[idx]&&idx!==d.hintTarget)break; /* 雾里不画，玩家自己点一步 */
+      drawArrow(px*s+s/2,py*s+s/2,Math.atan2(ty-py,tx-px),ph);
+      ph+=0.6;
+    }
+  }
+}
+function showTreasureModal(){
+  const list=S.colls.map(c=>{
+    const x=c.x-(W>>1),y=(H>>1)-c.y;
+    const tag=c.collected?'✅':'🔍';
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;border-bottom:1px dashed rgba(90,150,220,.45);font-size:13px">'+
+      '<span>'+tag+' 灵宝 #'+c.cid+'（被八道禁制环绕）</span><span style="color:#b06a00;font-weight:bold">('+x+', '+y+')</span></div>';
+  }).join('');
+  showModal('🗺️ 寻宝罗盘','<p style="color:#33527f">已激活寻宝罗盘！坐标以地图中心为原点（x向右、y向上），地图上已出现金色藏宝星标：</p>'+list);
+}
+/* 斩魔仙剑：揭示魔宗禁地方位 */
+function castleCoords(){
+  const d=S.dungeons[0];
+  if(d&&d.px>=0)return{x:d.px-(W>>1),y:(H>>1)-d.py};
+  return null;
+}
+function showHeroSwordModal(){
+  const c=castleCoords();
+  if(!c){showModal('🗡️ 斩魔仙剑','<p>魔宗禁地的遁移阵尚未生成于这片大陆。</p>');return;}
+  showModal('🗡️ 斩魔仙剑','<div class="big">🗡️</div><p>斩魔仙剑感应到了魔尊的气息！</p><p>魔宗禁地坐标：<b style="color:#b06a00">('+c.x+', '+c.y+')</b>（地图中心为原点）</p><p>地图上已出现金色仙剑标记，洞府被五行禁制大阵环绕，仅有一条通路，中央遁移阵连通洞天。</p>');
+}
+function drawHeroSwordMarker(){
+  if(!S.heroSword)return;
+  const c=castleCoords();
+  if(!c)return;
+  const s=view.scale,ox=view.x,oy=view.y;
+  const sx=(c.x+1024+0.5-ox)*s,sy=((H>>1)-c.y+0.5-oy)*s;
+  if(sx<-30||sy<-30||sx>cw+30||sy>ch+30)return;
+  const pulse=0.5+0.5*Math.sin(performance.now()/260);
+  gctx.strokeStyle='rgba(255,209,102,'+(0.4+0.5*pulse)+')';
+  gctx.lineWidth=3;
+  gctx.setLineDash([6,5]);
+  gctx.beginPath();
+  gctx.arc(sx,sy,Math.max(10,s*1.4),0,Math.PI*2);
+  gctx.stroke();
+  gctx.setLineDash([]);
+  gctx.font=(Math.max(12,Math.min(26,s*0.8)))+'px sans-serif';
+  gctx.textAlign='center';gctx.textBaseline='middle';
+  gctx.fillText('🗡️',sx,sy);
+}
+function deployMiner(x,y){
+  if(S.items.miner<=0){setArmed(null);return;}
+  S.items.miner--;
+  spawnMiner(x,y,S.pendingMinerCost);
+  if(S.items.miner>0)setArmed('miner');else setArmed(null);
+  SFX.coin();refreshHUD();saveSoon();
+}
+
+/* ---------- 特效 ---------- */
+let parts=[],floats=[],shakeT=0;
+function spawnParts(x,y,color,n,speed){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,v=speed*(0.3+Math.random()*0.9);
+    parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1.5,life:0.6+Math.random()*0.5,max:1.1,color});
+  }
+  if(parts.length>900)parts.splice(0,parts.length-900);
+}
+function addFloat(x,y,text,color){floats.push({x,y,text,color,life:1.6,max:1.6});}
+function updateFx(dt){
+  shakeT=Math.max(0,shakeT-dt);
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i];
+    p.life-=dt/1000;
+    if(p.life<=0){parts.splice(i,1);continue;}
+    p.x+=p.vx*dt/1000;p.y+=p.vy*dt/1000;p.vy+=1200*dt/1000;
+  }
+  for(let i=floats.length-1;i>=0;i--){
+    const f=floats[i];
+    f.life-=dt/1000;f.y-=30*dt/1000;
+    if(f.life<=0)floats.splice(i,1);
+  }
+}
+function flashDiv(){
+  const f=$('flash');
+  f.style.opacity='0.35';
+  setTimeout(()=>{f.style.opacity='0';},90);
+}
+Object.assign(FX,{
+  explode(x,y){
+    const s=mapToScreen(x+0.5,y+0.5);
+    spawnParts(s.x,s.y,[255,150,60],26,9);
+    spawnParts(s.x,s.y,[255,60,90],14,6);
+    shakeT=300;flashDiv();SFX.explode();
+    addFloat(s.x,s.y-8,'💥','#ffb199');
+    /* 周围 10 格内的灵狐四散奔逃 */
+    for(const c of cats){
+      const cdx=c.x-0.5-x,cdy=c.y-0.5-y;
+      if(cdx*cdx+cdy*cdy<=100){
+        c.mode='flee';c.flee={x,y};c.fleeT=3+Math.random()*2;c.blink=false;
+      }
+    }
+  },
+  anchor(x,y){
+    const s=mapToScreen(x+0.5,y+0.5);
+    spawnParts(s.x,s.y-60,[255,215,102],32,7);
+    spawnParts(s.x,s.y,[177,140,255],22,5);
+    shakeT=250;SFX.shield();
+    addFloat(s.x,s.y-14,'🗼 锚枪降临！','#ffe066');
+    toastShow('🗼 定界碑：开辟 3×3 新区域');
+  },
+  meteor(){
+    meteorRain();
+  },
+  collect(i,e){
+    const x=i%W,y=(i/W)|0;
+    const s=mapToScreen(x+0.5,y+0.5);
+    spawnParts(s.x,s.y,[255,224,102],44,7);
+    spawnParts(s.x,s.y,[255,126,179],22,5);
+    SFX.collect();
+    addFloat(s.x,s.y-10,'✨ 灵宝！','#ffe066');
+    showModal('✨ 灵宝发现！','<div class="big">'+e.icon+'</div><p><b>'+e.name+'</b></p><p>'+e.desc+'</p>');
+  },
+  coin(){SFX.coin();},
+  blast(){SFX.blast();},
+  pop(){SFX.pop();},
+  flag(){SFX.flag();},
+  shield(x,y){SFX.shield();},
+  toast(text){toastShow(text);},
+  quest(q,txt){showModal('📜 主线任务完成','<div class="big">📜</div><p><b>「'+q.name+'」</b></p><p>'+q.story+'</p><p style="color:#b06a00">奖励：'+txt+'</p>'+nextQuestHtml());},
+});
+
+/* ---------- 灵狐（在已翻开的空白格游荡，行为丰富） ---------- */
+let cats=[],decos=[],homeZero=idx(W>>1,H>>1);
+const CAT_COLORS=[['#ff922b','#fff3d6'],['#e8590c','#ffe8cc'],['#f76707','#ffd8a8'],['#ffa94d','#fff9db'],['#63b3ed','#e6f6ff'],['#f1f3f5','#ffd8a8']];
+const TARGET_CATS=8;
+function randomZeroPos(){
+  let x=homeZero%W,y=(homeZero/W)|0;
+  const steps=10+((Math.random()*40)|0);
+  for(let s=0;s<steps;s++){
+    const d=DIRS4[(Math.random()*DIRS4.length)|0];
+    const nx=x+d[0],ny=y+d[1];
+    if(!inB(nx,ny))break;
+    const j=ny*W+nx;
+    if(!S.revMap[j]||S.mineMap[j]||S.numMap[j]!==0)break;
+    x=nx;y=ny;
+  }
+  return{x,y};
+}
+function spawnCat(){
+  const p=randomZeroPos();
+  const col=CAT_COLORS[(Math.random()*CAT_COLORS.length)|0];
+  cats.push({x:p.x+0.5,y:p.y+0.5,tx:p.x+0.5,ty:p.y+0.5,speed:1.5+Math.random()*2.2,phase:Math.random()*6.28,color:col,dir:(Math.random()<0.5?1:-1),
+    mode:'walk',modeT:0,blinkT:2+Math.random()*3,blink:false,flee:null,fleeT:0});
+}
+function pickTarget(c){
+  const cx=Math.floor(c.x),cy=Math.floor(c.y);
+  for(let t=0;t<12;t++){
+    const d=DIRS4[(Math.random()*DIRS4.length)|0];
+    const nx=cx+d[0],ny=cy+d[1];
+    if(!inB(nx,ny))continue;
+    const j=ny*W+nx;
+    if(S.revMap[j]&&!S.mineMap[j]&&S.numMap[j]===0){
+      c.tx=nx+0.5;c.ty=ny+0.5;
+      if(d[0]!==0)c.dir=d[0];
+      return;
+    }
+  }
+  c.tx=c.x;c.ty=c.y;
+}
+function decideNext(c){
+  const r=Math.random();
+  if(r<0.45){c.mode='walk';pickTarget(c);}
+  else if(r<0.65){c.mode='sit';c.modeT=1+Math.random()*3;}
+  else if(r<0.8){c.mode='sleep';c.modeT=3+Math.random()*5;}
+  else{c.mode='play';c.modeT=1.2+Math.random()*2;pickTarget(c);}
+}
+function moveToward(c,dt,speedMul){
+  const ddx=c.tx-c.x,ddy=c.ty-c.y;
+  const d=Math.hypot(ddx,ddy);
+  if(d<0.01)return true;
+  const step=c.speed*speedMul*dt/1000;
+  if(step>=d){c.x=c.tx;c.y=c.ty;return true;}
+  c.x+=ddx/d*step;c.y+=ddy/d*step;
+  return false;
+}
+/* 找离(x,y)最近的已翻开空白格（最多向外6格） */
+function nearestZero(x,y){
+  for(let r=0;r<6;r++){
+    for(let oy=-r;oy<=r;oy++)for(let ox=-r;ox<=r;ox++){
+      if(Math.max(Math.abs(ox),Math.abs(oy))!==r)continue;
+      const nx=x+ox,ny=y+oy;
+      if(!inB(nx,ny))continue;
+      const j=ny*W+nx;
+      if(S.revMap[j]&&!S.mineMap[j]&&S.numMap[j]===0)return{nx,ny};
+    }
+  }
+  return null;
+}
+/* 跟随神识：贪心沿0格走，永不离开空白区 */
+function followStep(c,dt){
+  const cx=Math.floor(c.x),cy=Math.floor(c.y);
+  let best=null,bestD=Infinity;
+  for(const d of DIRS4){
+    const nx=cx+d[0],ny=cy+d[1];
+    if(!inB(nx,ny))continue;
+    const j=ny*W+nx;
+    if(!S.revMap[j]||S.mineMap[j]||S.numMap[j]!==0)continue;
+    const ddx=nx+0.5-c.tx,ddy=ny+0.5-c.ty;
+    const dd=ddx*ddx+ddy*ddy;
+    if(dd<bestD){bestD=dd;best={nx,ny,dx:d[0]};}
+  }
+  if(best){
+    const ddx=best.nx+0.5-c.x,ddy=best.ny+0.5-c.y;
+    const d=Math.hypot(ddx,ddy);
+    const step=c.speed*1.5*dt/1000;
+    if(step>=d){c.x=best.nx+0.5;c.y=best.ny+0.5;}
+    else{c.x+=ddx/d*step;c.y+=ddy/d*step;}
+    if(best.dx!==0)c.dir=best.dx;
+  }
+}
+/* 逃离爆炸：沿"远离爆炸点"的方向贪心走 0 格 */
+function fleeStep(c,dt){
+  const cx=Math.floor(c.x),cy=Math.floor(c.y);
+  const vx=c.x-0.5-c.flee.x,vy=c.y-0.5-c.flee.y;
+  const vl=Math.hypot(vx,vy)||1;
+  const ux=vx/vl,uy=vy/vl;
+  let best=null,bestScore=-Infinity;
+  for(const d of DIRS4){
+    const nx=cx+d[0],ny=cy+d[1];
+    if(!inB(nx,ny))continue;
+    const j=ny*W+nx;
+    if(!S.revMap[j]||S.mineMap[j]||S.numMap[j]!==0)continue;
+    const px=nx+0.5-c.flee.x,py=ny+0.5-c.flee.y;
+    const score=(px*ux+py*uy)+(d[0]===c.dir?0.4:0); /* 远离投影 + 朝向动量 */
+    if(score>bestScore){bestScore=score;best={nx,ny,dx:d[0]};}
+  }
+  if(best){
+    const ddx=best.nx+0.5-c.x,ddy=best.ny+0.5-c.y;
+    const d=Math.hypot(ddx,ddy);
+    const step=c.speed*2.2*dt/1000;
+    if(step>=d){c.x=best.nx+0.5;c.y=best.ny+0.5;}
+    else{c.x+=ddx/d*step;c.y+=ddy/d*step;}
+    if(best.dx!==0)c.dir=best.dx;
+  }
+}
+function stepCats(dt){
+  if(!cats.length)return;
+  for(const c of cats){
+    c.blinkT-=dt;
+    if(c.blinkT<=0){c.blink=!c.blink;c.blinkT=c.blink?0.15:2+Math.random()*3;}
+    c.modeT-=dt;
+    if(c.flee){
+      c.fleeT-=dt/1000; /* fleeT 单位为秒 */
+      fleeStep(c,dt);
+      /* 至少逃到爆炸点 10 格开外才冷静（保险上限 20 秒） */
+      const cdx=c.x-0.5-c.flee.x,cdy=c.y-0.5-c.flee.y;
+      const dist=Math.hypot(cdx,cdy);
+      if((c.fleeT<=0&&dist>=10)||c.fleeT<-20){c.flee=null;c.mode='walk';decideNext(c);}
+      continue;
+    }
+    /* 神识交互：20格内的灵狐跟随神识，更远的灵狐看向神识 */
+    let following=false;
+    if(hover&&!down){
+      const hx=hover.x,hy=hover.y;
+      const cdx=c.x-0.5-hx,cdy=c.y-0.5-hy;
+      if(cdx*cdx+cdy*cdy<=400){
+        const nz=nearestZero(hx,hy);
+        if(nz){
+          following=true;
+          const ox=(((c.phase*7)|0)%5)-2,oy=(((c.phase*11)|0)%5)-2;
+          c.tx=nz.nx+0.5+ox*0.25;c.ty=nz.ny+0.5+oy*0.25;
+          c.dir=(hover.sx>=(c.x-view.x)*view.scale)?1:-1;
+        }
+      }else{
+        const sx=(c.x-view.x)*view.scale,sy=(c.y-view.y)*view.scale;
+        if(Math.abs(sx-hover.sx)<200&&Math.abs(sy-hover.sy)<150)c.dir=hover.sx>=sx?1:-1;
+      }
+    }
+    if(following){
+      c.mode='walk';c.modeT=0;
+      followStep(c,dt);
+    }else if(c.mode==='walk'){
+      if(moveToward(c,dt,1))decideNext(c);
+    }else if(c.mode==='play'){
+      if(c.modeT<=0){c.mode='walk';decideNext(c);}
+      else if(moveToward(c,dt,2.2))pickTarget(c);
+    }else{
+      /* sit / sleep 静止 */
+      if(c.modeT<=0){c.mode='walk';decideNext(c);}
+    }
+  }
+}
+/* ---------- 像素小草小花（已翻开的空白格，密度提升至3%） ---------- */
+const DECO_MAX=6000;
+function addDeco(x,y){
+  if(decos.length>=DECO_MAX)return;
+  decos.push({x,y,t:(Math.random()*10)|0});
+}
+function sprinkleDecos(bb){
+  const x0=Math.max(0,bb.x0-1),y0=Math.max(0,bb.y0-1);
+  const x1=Math.min(W-1,bb.x1+1),y1=Math.min(H-1,bb.y1+1);
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+    const i=y*W+x;
+    if(S.revMap[i]&&!S.mineMap[i]&&S.numMap[i]===0&&Math.random()<0.03){
+      addDeco(x,y);
+    }
+  }
+  while(decos.length<20){
+    const p=randomZeroPos();
+    addDeco(p.x,p.y);
+    if(!S.revMap[idx(p.x,p.y)])break; /* 没有可用的空白格则停止 */
+  }
+}
+function fullSprinkleDecos(){
+  for(let i=0;i<N;i++){
+    if(S.revMap[i]&&!S.mineMap[i]&&S.numMap[i]===0&&Math.random()<0.03){
+      addDeco(i%W,(i/W)|0);
+      if(decos.length>=DECO_MAX)return;
+    }
+  }
+  while(decos.length<20){
+    const p=randomZeroPos();
+    addDeco(p.x,p.y);
+    if(!S.revMap[idx(p.x,p.y)])break;
+  }
+}
+
+/* ---------- 渲染 ---------- */
+function render(t){
+  gctx.fillStyle='#d9ecfc';
+  gctx.fillRect(0,0,cw,ch);
+  const shx=shakeT>0?(Math.random()-0.5)*10*(shakeT/300):0;
+  const shy=shakeT>0?(Math.random()-0.5)*10*(shakeT/300):0;
+  gctx.save();
+  gctx.translate(shx,shy);
+  if(view.scale>=4)drawCells();else drawPixels();
+  drawDecos();
+  drawTreasureMarkers();
+  drawHeroSwordMarker();
+  drawWorldMarkers();
+  drawCats();
+  drawMiners();
+  drawHover();
+  gctx.restore();
+  drawSeasonTint();
+  drawEventOverlay();
+  fctx.clearRect(0,0,cw,ch);
+  drawParticles();
+  drawFloats();
+  drawCoord();
+}
+function drawDecos(){
+  const s=view.scale,ox=view.x,oy=view.y;
+  if(s<6)return;
+  const u=Math.max(2,s*0.09);
+  for(const d of decos){
+    const sx=(d.x+0.5-ox)*s,sy=(d.y+0.5-oy)*s;
+    if(sx<-40||sy<-40||sx>cw+40||sy>ch+40)continue;
+    if(d.t===0){ /* 三叶草 */
+      gctx.fillStyle='#69db7c';
+      gctx.fillRect(sx-u*0.8,sy-u,u*0.7,u);
+      gctx.fillRect(sx-u*0.1,sy-u*1.3,u*0.7,u*1.3);
+      gctx.fillRect(sx+u*0.6,sy-u*0.8,u*0.7,u*0.8);
+    }else if(d.t===1){ /* 粉色小花 */
+      gctx.fillStyle='#ff7eb3';
+      gctx.fillRect(sx-u,sy-u,u*0.9,u*0.9);
+      gctx.fillRect(sx+u*0.1,sy-u,u*0.9,u*0.9);
+      gctx.fillRect(sx-u,sy+u*0.1,u*0.9,u*0.9);
+      gctx.fillRect(sx+u*0.1,sy+u*0.1,u*0.9,u*0.9);
+      gctx.fillStyle='#ffd166';
+      gctx.fillRect(sx-u*0.25,sy-u*0.25,u*0.6,u*0.6);
+    }else if(d.t===2){ /* 黄色小花 */
+      gctx.fillStyle='#ffd166';
+      gctx.fillRect(sx-u,sy-u*0.5,u*0.8,u*0.8);
+      gctx.fillRect(sx+u*0.2,sy-u*0.5,u*0.8,u*0.8);
+      gctx.fillRect(sx-u,sy+u*0.5,u*0.8,u*0.8);
+      gctx.fillRect(sx+u*0.2,sy+u*0.5,u*0.8,u*0.8);
+      gctx.fillStyle='#ff8c42';
+      gctx.fillRect(sx-u*0.25,sy-u*0.25,u*0.6,u*0.6);
+    }else if(d.t===3){ /* 白色小花 */
+      gctx.fillStyle='#f8f0ff';
+      gctx.fillRect(sx-u*0.8,sy-u,u*0.9,u*0.9);
+      gctx.fillRect(sx+u*0.3,sy-u*0.8,u*0.9,u*0.9);
+      gctx.fillRect(sx-u*0.8,sy+u*0.2,u*0.9,u*0.9);
+      gctx.fillStyle='#ffd166';
+      gctx.fillRect(sx-u*0.25,sy-u*0.25,u*0.6,u*0.6);
+    }else if(d.t===4){ /* 小草 */
+      gctx.fillStyle='#40c057';
+      gctx.fillRect(sx-u*0.25,sy-u,u*0.5,u);
+      gctx.fillStyle='#69db7c';
+      gctx.fillRect(sx-u*0.7,sy-u*0.6,u*0.5,u*0.6);
+      gctx.fillRect(sx+u*0.25,sy-u*0.7,u*0.5,u*0.7);
+    }else if(d.t===5){ /* 红色小花 */
+      gctx.fillStyle='#ff6b6b';
+      gctx.fillRect(sx-u*0.9,sy-u*0.7,u*0.9,u*0.9);
+      gctx.fillRect(sx+u*0.2,sy-u*0.7,u*0.9,u*0.9);
+      gctx.fillRect(sx-u*0.35,sy+u*0.2,u*0.9,u*0.9);
+      gctx.fillRect(sx+u*0.65,sy+u*0.2,u*0.9,u*0.9);
+      gctx.fillStyle='#ffe066';
+      gctx.fillRect(sx-u*0.25,sy-u*0.25,u*0.6,u*0.6);
+    }else if(d.t===6){ /* 蓝色小花 */
+      gctx.fillStyle='#74c0fc';
+      gctx.fillRect(sx-u,sy-u*0.6,u*0.9,u*0.9);
+      gctx.fillRect(sx+u*0.2,sy-u*0.6,u*0.9,u*0.9);
+      gctx.fillRect(sx-u*0.4,sy+u*0.4,u*0.9,u*0.9);
+      gctx.fillRect(sx+u*0.6,sy+u*0.4,u*0.9,u*0.9);
+      gctx.fillStyle='#f8f0ff';
+      gctx.fillRect(sx-u*0.25,sy-u*0.25,u*0.6,u*0.6);
+    }else if(d.t===7){ /* 紫色小花 */
+      gctx.fillStyle='#b18cff';
+      gctx.fillRect(sx-u*0.9,sy-u*0.8,u*0.9,u*0.9);
+      gctx.fillRect(sx+u*0.3,sy-u*0.8,u*0.9,u*0.9);
+      gctx.fillRect(sx-u*0.3,sy+u*0.3,u*0.9,u*0.9);
+      gctx.fillStyle='#ff7eb3';
+      gctx.fillRect(sx-u*0.25,sy-u*0.25,u*0.6,u*0.6);
+    }else if(d.t===8){ /* 郁金香 */
+      gctx.fillStyle='#2f9e44';
+      gctx.fillRect(sx-u*0.15,sy-u*0.5,u*0.3,u*1.6);
+      gctx.fillStyle='#ff8787';
+      gctx.fillRect(sx-u*0.8,sy-u*1.4,u*0.7,u*0.9);
+      gctx.fillRect(sx+u*0.1,sy-u*1.4,u*0.7,u*0.9);
+      gctx.fillStyle='#ffd166';
+      gctx.fillRect(sx-u*0.35,sy-u*1.1,u*0.7,u*0.5);
+    }else{ /* 花丛 */
+      gctx.fillStyle='#51cf66';
+      gctx.fillRect(sx-u*1.1,sy-u*0.4,u*2.2,u*1.1);
+      gctx.fillRect(sx-u*0.5,sy-u*0.9,u*1.6,u*0.8);
+      gctx.fillStyle='#ff7eb3';
+      gctx.fillRect(sx-u*0.6,sy-u*0.5,u*0.5,u*0.5);
+      gctx.fillRect(sx+u*0.4,sy-u*0.7,u*0.5,u*0.5);
+      gctx.fillStyle='#74c0fc';
+      gctx.fillRect(sx-u*0.1,sy+u*0.2,u*0.5,u*0.5);
+    }
+  }
+}
+/* 寻宝罗盘：在灵宝位置绘制旋转的金色藏宝星标 */
+function drawTreasureMarkers(){
+  if(!S.treasureMap)return;
+  const s=view.scale,ox=view.x,oy=view.y;
+  const t=performance.now();
+  for(const c of S.colls){
+    const sx=(c.x+0.5-ox)*s,sy=(c.y+0.5-oy)*s;
+    if(sx<-24||sy<-24||sx>cw+24||sy>ch+24)continue;
+    const pulse=0.5+0.5*Math.sin(t/300+c.cid);
+    const r=Math.max(2.5,Math.min(9,s*0.3));
+    gctx.save();
+    gctx.translate(sx,sy);
+    gctx.rotate(t/900+c.cid);
+    gctx.fillStyle='rgba(255,215,102,'+(0.55+0.45*pulse).toFixed(2)+')';
+    gctx.beginPath();
+    for(let i=0;i<8;i++){
+      const ang=i*Math.PI/4;
+      const rr=(i%2===0)?r:r*0.45;
+      const px=Math.cos(ang)*rr,py=Math.sin(ang)*rr;
+      if(i===0)gctx.moveTo(px,py);else gctx.lineTo(px,py);
+    }
+    gctx.closePath();
+    gctx.fill();
+    gctx.restore();
+  }
+}
+function drawCats(){
+  const s=view.scale,ox=view.x,oy=view.y;
+  if(s<6)return;
+  const t=performance.now();
+  for(const c of cats){
+    const bounce=(c.mode==='play'?3.5:1.2);
+    const sy0=(c.y-oy)*s+Math.sin(t/400+c.phase)*bounce;
+    const sx=(c.x-ox)*s;
+    if(sx<-70||sy0<-70||sx>cw+70||sy0>ch+70)continue;
+    const u=5.5; /* 灵狐的大小固定，不随缩放改变 */
+    const main=c.color[0],acc=c.color[1];
+    const sleeping=c.mode==='sleep';
+    const sy=sleeping?sy0+1.4*u:sy0;
+    if(!sleeping){
+      /* 狐耳（大而尖，带深色耳尖） */
+      gctx.fillStyle=main;
+      gctx.beginPath();
+      gctx.moveTo(sx-2.7*u,sy-1.2*u);gctx.lineTo(sx-1.2*u,sy-3.6*u);gctx.lineTo(sx+0.2*u,sy-1.2*u);gctx.fill();
+      gctx.beginPath();
+      gctx.moveTo(sx-0.2*u,sy-1.2*u);gctx.lineTo(sx+1.2*u,sy-3.6*u);gctx.lineTo(sx+2.7*u,sy-1.2*u);gctx.fill();
+      gctx.fillStyle=acc;
+      gctx.beginPath();
+      gctx.moveTo(sx-1.2*u,sy-2.1*u);gctx.lineTo(sx-1.7*u,sy-1.2*u);gctx.lineTo(sx-0.7*u,sy-1.2*u);gctx.fill();
+      gctx.beginPath();
+      gctx.moveTo(sx+1.2*u,sy-2.1*u);gctx.lineTo(sx+0.7*u,sy-1.2*u);gctx.lineTo(sx+1.7*u,sy-1.2*u);gctx.fill();
+    }
+    /* 身体 */
+    gctx.fillStyle=main;
+    gctx.beginPath();
+    if(sleeping)gctx.roundRect?gctx.roundRect(sx-2.9*u,sy-1.1*u,5.8*u,2.6*u,1.4*u):gctx.rect(sx-2.9*u,sy-1.1*u,5.8*u,2.6*u);
+    else gctx.roundRect?gctx.roundRect(sx-2.6*u,sy-1.5*u,5.2*u,4.2*u,1.7*u):gctx.rect(sx-2.6*u,sy-1.5*u,5.2*u,4.2*u);
+    gctx.fill();
+    /* 肚皮 */
+    gctx.fillStyle=acc;
+    gctx.beginPath();
+    if(sleeping)gctx.roundRect?gctx.roundRect(sx-1.3*u,sy-0.5*u,2.6*u,1.6*u,u):gctx.rect(sx-1.3*u,sy-0.5*u,2.6*u,1.6*u);
+    else gctx.roundRect?gctx.roundRect(sx-1.1*u,sy+0.4*u,2.2*u,2.3*u,u):gctx.rect(sx-1.1*u,sy+0.4*u,2.2*u,2.3*u);
+    gctx.fill();
+    /* 背毛花纹（狐耳斑） */
+    if(!sleeping){
+      gctx.fillStyle='rgba(120,60,20,0.18)';
+      gctx.fillRect(sx-2*u,sy-1.1*u,0.8*u,0.5*u);
+      gctx.fillRect(sx+0.2*u,sy-1.25*u,0.8*u,0.5*u);
+      gctx.fillRect(sx-0.9*u,sy+1.6*u,0.8*u,0.5*u);
+      gctx.fillRect(sx+0.7*u,sy+1.6*u,0.8*u,0.5*u);
+    }
+    /* 白胸毛（狐） */
+    if(!sleeping){
+      gctx.fillStyle=acc;
+      gctx.beginPath();
+      gctx.arc(sx,sy+1.1*u,u*0.9,0,Math.PI*2);
+      gctx.fill();
+    }
+    /* 腮红 */
+    if(!sleeping){
+      gctx.fillStyle='rgba(255,140,120,0.4)';
+      gctx.fillRect(sx-2.3*u,sy+0.25*u,u*0.6,u*0.4);
+      gctx.fillRect(sx+1.7*u,sy+0.25*u,u*0.6,u*0.4);
+    }
+    /* 鼻子（狐：深色尖鼻） */
+    if(!sleeping&&!c.blink){
+      gctx.fillStyle='#4a2a1a';
+      gctx.fillRect(sx-u*0.2,sy+0.3*u,u*0.4,u*0.32);
+    }
+    /* 眼睛 */
+    const eyeClosed=c.blink||sleeping;
+    const ex1=sx+(c.dir>0?-1.5:-0.2)*u,ex2=sx+(c.dir>0?0.65:1.95)*u,ey=sy+(sleeping?0.1:0)*u;
+    if(eyeClosed){
+      gctx.strokeStyle='#2b1b4e';
+      gctx.lineWidth=Math.max(1,u*0.22);
+      gctx.beginPath();
+      gctx.moveTo(ex1-0.2*u,ey);gctx.lineTo(ex1+0.45*u,ey);
+      gctx.moveTo(ex2-0.2*u,ey);gctx.lineTo(ex2+0.45*u,ey);
+      gctx.stroke();
+    }else{
+      gctx.fillStyle='#2b1b4e';
+      gctx.fillRect(ex1,ey-0.25*u,u*0.6,u*0.85);
+      gctx.fillRect(ex2,ey-0.25*u,u*0.6,u*0.85);
+      gctx.fillStyle='#fff';
+      gctx.fillRect(ex1+0.15*u,ey-0.1*u,u*0.2,u*0.3);
+      gctx.fillRect(ex2+0.15*u,ey-0.1*u,u*0.2,u*0.3);
+    }
+    /* 尾巴（坐着时摆动） */
+    const wag=(c.mode==='sit'||c.mode==='sleep')?Math.sin(t/300+c.phase)*0.5*u:0;
+    gctx.fillStyle=main;
+    if(sleeping){
+      gctx.fillRect(sx+c.dir*2.6*u,sy-1.6*u,u*0.8,2.2*u);
+      gctx.fillStyle=acc;
+      gctx.fillRect(sx+c.dir*2.6*u,sy-1.9*u+wag,u*0.8,u*0.7);
+    }else{
+      gctx.fillRect(sx-c.dir*2.6*u,sy-2.8*u+wag,u*0.9,2.2*u);
+      gctx.fillStyle=acc;
+      gctx.fillRect(sx-c.dir*2.6*u,sy-3.1*u+wag,u*0.9,u*0.7);
+    }
+    /* 胡须（深色，便于浅色地图上辨识） */
+    if(!sleeping){
+      gctx.strokeStyle='rgba(90,60,40,0.65)';
+      gctx.lineWidth=Math.max(1,u*0.18);
+      gctx.beginPath();
+      gctx.moveTo(sx-1.5*u,sy+0.35*u);gctx.lineTo(sx-2.8*u,sy+0.1*u);
+      gctx.moveTo(sx+1.5*u,sy+0.35*u);gctx.lineTo(sx+2.8*u,sy+0.1*u);
+      gctx.stroke();
+    }
+    /* 睡觉 Zzz */
+    if(sleeping){
+      const zt=(t/700+c.phase)%1;
+      gctx.fillStyle='rgba(60,100,190,'+(1-zt).toFixed(2)+')';
+      gctx.font='bold '+(u*1.2)+'px sans-serif';
+      gctx.textAlign='center';
+      gctx.fillText('z',sx+c.dir*1.6*u,sy-2.2*u-zt*2.4*u);
+      gctx.fillText('z',sx+c.dir*2.6*u,sy-3.4*u-zt*2.4*u);
+    }
+    /* 惊恐逃窜标识 */
+    if(c.flee){
+      const shake=(Math.random()-0.5)*3;
+      gctx.font='bold '+(u*1.6)+'px sans-serif';
+      gctx.textAlign='center';
+      gctx.fillStyle='#ff6b6b';
+      gctx.fillText('!',sx+shake,sy-3.6*u);
+    }
+  }
+}
+function drawCoord(){
+  if(!hover)return;
+  const cx=hover.x-(W>>1),cy=(H>>1)-hover.y; /* 以地图中心为原点，x向右、y向上 */
+  const txt='('+cx+', '+cy+')';
+  fctx.font='bold 12px "Segoe UI",sans-serif';
+  fctx.textAlign='left';
+  const w=fctx.measureText(txt).width+14;
+  const px=Math.min(cw-w-6,hover.sx+16),py=Math.max(4,hover.sy-34);
+  fctx.fillStyle='rgba(220,238,255,0.92)';
+  fctx.fillRect(px,py,w,22);
+  fctx.fillStyle='#0f4a8a';
+  fctx.fillText(txt,px+7,py+15);
+}
+function drawCells(){
+  const s=view.scale,ox=view.x,oy=view.y;
+  const x0=Math.max(0,Math.floor(ox));
+  const y0=Math.max(0,Math.floor(oy));
+  const x1=Math.min(W-1,Math.ceil(ox+cw/s));
+  const y1=Math.min(H-1,Math.ceil(oy+ch/s));
+  for(let y=y0;y<=y1;y++){
+    const i0=y*W;
+    let runStart=x0;
+    let st=cellState(i0+x0);
+    let col=PXC[st];
+    for(let x=x0+1;x<=x1+1;x++){
+      const st2=(x<=x1)?cellState(i0+x):-1;
+      if(st2!==st){
+        gctx.fillStyle=col;
+        gctx.fillRect((runStart-ox)*s,(y-oy)*s,(x-runStart)*s,s);
+        runStart=x;st=st2;col=PXC[st];
+      }
+    }
+  }
+  if(s>=6){
+    gctx.strokeStyle='rgba(90,140,210,0.28)';
+    gctx.lineWidth=1;
+    gctx.beginPath();
+    for(let x=x0;x<=x1+1;x++){const px=(x-ox)*s;gctx.moveTo(px,0);gctx.lineTo(px,ch);}
+    for(let y=y0;y<=y1+1;y++){const py=(y-oy)*s;gctx.moveTo(0,py);gctx.lineTo(cw,py);}
+    gctx.stroke();
+  }
+  const s2=s,ox2=ox,oy2=oy;
+  if(s2>=10){
+    gctx.textAlign='center';gctx.textBaseline='middle';
+    gctx.font=Math.max(9,s2*0.72)+'px sans-serif';
+    for(let y=y0;y<=y1;y++){
+      const i0=y*W;
+      for(let x=x0;x<=x1;x++){
+        const i=i0+x,st=cellState(i);
+        if(st===ST.FLAG||st===ST.BOMB||st===ST.CRATER||st===ST.COLLECT){
+          if(st===ST.COLLECT){
+            const pulse=0.5+0.5*Math.sin(performance.now()/280);
+            gctx.strokeStyle='rgba(255,224,102,'+(0.25+0.45*pulse)+')';
+            gctx.lineWidth=2;
+            gctx.beginPath();
+            gctx.arc((x+0.5-ox2)*s2,(y+0.5-oy2)*s2,s2*0.55+2*pulse,0,Math.PI*2);
+            gctx.stroke();
+          }
+          gctx.fillStyle=EMOJI[st]==='💎'?'#fff3c4':'#fff';
+          gctx.fillText(EMOJI[st],(x+0.5-ox2)*s2,(y+0.5-oy2)*s2);
+        }else if(st===ST.LAKE||st===ST.VOLCANO||st===ST.WALL||st===ST.CASTLE||st===ST.PORTAL){
+          const now=performance.now();
+          if(st===ST.VOLCANO){
+            const pulse=0.5+0.5*Math.sin(now/500+x*0.3);
+            gctx.strokeStyle='rgba(255,120,60,'+(0.2+0.4*pulse)+')';
+            gctx.lineWidth=2;
+            gctx.beginPath();
+            gctx.arc((x+0.5-ox2)*s2,(y+0.5-oy2)*s2,s2*0.5,0,Math.PI*2);
+            gctx.stroke();
+          }else if(st===ST.PORTAL){
+            const pulse=0.5+0.5*Math.sin(now/250);
+            gctx.strokeStyle='rgba(200,130,255,'+(0.4+0.5*pulse)+')';
+            gctx.lineWidth=2.5;
+            gctx.beginPath();
+            gctx.arc((x+0.5-ox2)*s2,(y+0.5-oy2)*s2,s2*0.55+2*pulse,0,Math.PI*2);
+            gctx.stroke();
+          }
+          const bob=(st===ST.LAKE)?Math.sin(now/600+x*1.7)*1.2:0;
+          gctx.fillStyle=st===ST.PORTAL?'#f3d9ff':'#fff';
+          gctx.fillText(TERRAIN_EMOJI[st],(x+0.5-ox2)*s2,(y+0.5-oy2)*s2+bob);
+        }
+      }
+    }
+  }
+  if(s2>=12){
+    gctx.font='bold '+Math.min(44,s2*0.62)+'px "Segoe UI",sans-serif';
+    for(let y=y0;y<=y1;y++){
+      const i0=y*W;
+      for(let x=x0;x<=x1;x++){
+        const i=i0+x,st=cellState(i);
+        if(st>=ST.N1&&st<=ST.N8){
+          gctx.fillStyle=NUM_TEXT_COL[st];
+          gctx.fillText(''+S.numMap[i],(x+0.5-ox2)*s2,(y+0.52-oy2)*s2);
+        }
+      }
+    }
+  }
+}
+function drawPixels(){
+  const s=view.scale,ox=view.x,oy=view.y;
+  const sx=Math.max(0,Math.floor(ox));
+  const sy=Math.max(0,Math.floor(oy));
+  const sw=Math.min(W-sx,Math.ceil(ox+cw/s)-sx);
+  const sh=Math.min(H-sy,Math.ceil(oy+ch/s)-sy);
+  if(sw<=0||sh<=0)return;
+  gctx.imageSmoothingEnabled=false;
+  gctx.drawImage(pxCanvas,sx,sy,sw,sh,(sx-ox)*s,(sy-oy)*s,sw*s,sh*s);
+}
+function drawMiners(){
+  const s=view.scale,ox=view.x,oy=view.y;
+  const t=performance.now();
+  for(let mi=0;mi<S.miners.length;mi++){
+    const m=S.miners[mi];
+    const sx=(m.px-ox)*s,sy=(m.py-oy)*s;
+    if(sx<-40||sy<-40||sx>cw+40||sy>ch+40)continue;
+    const r=Math.max(4,s*0.34);
+    const bob=Math.sin(t/120+mi*1.7)*1.5;
+    gctx.fillStyle='#ff9ecb';
+    gctx.beginPath();
+    gctx.arc(sx,sy+bob,r,0,Math.PI*2);
+    gctx.fill();
+    gctx.fillStyle='#fff';
+    gctx.beginPath();
+    gctx.arc(sx-r*0.3,sy+bob-r*0.15,r*0.22,0,Math.PI*2);
+    gctx.arc(sx+r*0.3,sy+bob-r*0.15,r*0.22,0,Math.PI*2);
+    gctx.fill();
+    gctx.fillStyle='#ff5c8a';
+    gctx.beginPath();
+    gctx.arc(sx-r*0.3,sy+bob-r*0.15,r*0.1,0,Math.PI*2);
+    gctx.arc(sx+r*0.3,sy+bob-r*0.15,r*0.1,0,Math.PI*2);
+    gctx.fill();
+    gctx.strokeStyle='rgba(88,199,240,0.9)';
+    gctx.lineWidth=2;
+    gctx.beginPath();
+    gctx.moveTo(sx+m.dx*r*1.6,sy+bob+m.dy*r*1.6);
+    gctx.lineTo(sx+m.dx*r*2.6,sy+bob+m.dy*r*2.6);
+    gctx.stroke();
+  }
+}
+function drawHover(){
+  if(!hover)return;
+  const s=view.scale,ox=view.x,oy=view.y;
+  if(S.armed){
+    if(S.armed==='miner'){
+      const cx=W/2,cy=H/2;
+      let dx=hover.x-cx,dy=hover.y-cy;
+      const L=Math.hypot(dx,dy)||1;
+      dx/=L;dy/=L;
+      const px=dx,py=dy,pxn=-dy,pyn=dx;
+      gctx.strokeStyle='rgba(88,199,240,0.9)';
+      gctx.lineWidth=2;
+      gctx.setLineDash([6,5]);
+      gctx.beginPath();
+      for(let k=-MINER_HALF;k<=MINER_HALF;k++){
+        const x1=hover.x+pxn*k,y1=hover.y+pyn*k;
+        const x2=x1+px*14,y2=y1+py*14;
+        gctx.moveTo((x1+0.5-ox)*s,(y1+0.5-oy)*s);
+        gctx.lineTo((x2+0.5-ox)*s,(y2+0.5-oy)*s);
+      }
+      gctx.stroke();
+      gctx.setLineDash([]);
+      gctx.fillStyle='rgba(88,199,240,0.9)';
+      gctx.beginPath();
+      gctx.arc((hover.x+0.5-ox)*s,(hover.y+0.5-oy)*s,3,0,Math.PI*2);
+      gctx.fill();
+    }else if(S.armed==='anchor'){
+      const pulse=0.5+0.5*Math.sin(performance.now()/180);
+      gctx.strokeStyle='rgba(255,215,102,'+(0.6+0.4*pulse)+')';
+      gctx.lineWidth=2.5;
+      gctx.setLineDash([5,4]);
+      gctx.strokeRect((hover.x-1.5-ox)*s,(hover.y-1.5-oy)*s,3*s,3*s);
+      gctx.setLineDash([]);
+      gctx.fillStyle='rgba(255,215,102,'+(0.3+0.3*pulse)+')';
+      gctx.fillRect((hover.x-1.5-ox)*s,(hover.y-1.5-oy)*s,3*s,3*s);
+    }else if(S.armed==='foil'){
+      const pulse=0.5+0.5*Math.sin(performance.now()/300);
+      gctx.strokeStyle='rgba(200,130,255,'+(0.4+0.4*pulse)+')';
+      gctx.lineWidth=2;
+      gctx.setLineDash([8,6]);
+      gctx.beginPath();
+      gctx.arc((hover.x+0.5-ox)*s,(hover.y+0.5-oy)*s,40*s,0,Math.PI*2);
+      gctx.stroke();
+      gctx.setLineDash([]);
+    }else if(S.armed==='teleport'){
+      const pulse=0.5+0.5*Math.sin(performance.now()/200);
+      gctx.strokeStyle='rgba(255,215,102,'+(0.5+0.5*pulse)+')';
+      gctx.lineWidth=3;
+      gctx.beginPath();
+      gctx.arc((hover.x+0.5-ox)*s,(hover.y+0.5-oy)*s,Math.max(6,s*0.5),0,Math.PI*2);
+      gctx.stroke();
+      gctx.fillStyle='rgba(255,215,102,0.35)';
+      gctx.beginPath();
+      gctx.arc((hover.x+0.5-ox)*s,(hover.y+0.5-oy)*s,3,0,Math.PI*2);
+      gctx.fill();
+    }else{
+      const r=(S.armed==='probe'||S.armed==='autoprobe')?probeRadius():blastRadius();
+      gctx.strokeStyle=(S.armed==='autoprobe')?'rgba(214,150,255,0.9)':(S.armed==='probe'?'rgba(88,199,240,0.9)':'rgba(255,92,138,0.9)');
+      gctx.lineWidth=2;
+      gctx.setLineDash([6,5]);
+      gctx.beginPath();
+      gctx.arc((hover.x+0.5-ox)*s,(hover.y+0.5-oy)*s,r*s,0,Math.PI*2);
+      gctx.stroke();
+      gctx.setLineDash([]);
+    }
+  }else{
+    const i=idx(hover.x,hover.y);
+    const chordReady=S.revMap[i]&&!S.mineMap[i]&&S.numMap[i]>0&&mineSignalsAround(hover.x,hover.y)===S.numMap[i];
+    if(chordReady){
+      /* 旗数=数字 → 点触可连锁翻开（金色脉冲提示） */
+      const pulse=0.5+0.5*Math.sin(performance.now()/200);
+      gctx.strokeStyle='rgba(255,224,102,'+(0.45+0.5*pulse)+')';
+      gctx.lineWidth=3;
+      gctx.beginPath();
+      gctx.arc((hover.x+0.5-ox)*s,(hover.y+0.5-oy)*s,s*0.62,0,Math.PI*2);
+      gctx.stroke();
+    }
+    gctx.strokeStyle='rgba(20,80,180,0.9)';
+    gctx.lineWidth=2;
+    gctx.strokeRect((hover.x-ox)*s+1,(hover.y-oy)*s+1,s-2,s-2);
+  }
+}
+function drawParticles(){
+  for(const p of parts){
+    const a=Math.max(0,p.life/p.max);
+    fctx.globalAlpha=a;
+    fctx.fillStyle='rgb('+(p.color[0]|0)+','+(p.color[1]|0)+','+(p.color[2]|0)+')';
+    fctx.beginPath();
+    fctx.arc(p.x,p.y,Math.max(1,3*a),0,Math.PI*2);
+    fctx.fill();
+  }
+  fctx.globalAlpha=1;
+}
+function drawFloats(){
+  for(const f of floats){
+    const a=Math.max(0,f.life/f.max);
+    fctx.globalAlpha=a;
+    fctx.font='bold 16px "Segoe UI",sans-serif';
+    fctx.textAlign='center';
+    fctx.shadowColor='rgba(10,40,90,0.85)';
+    fctx.shadowBlur=5;
+    fctx.fillStyle=f.color;
+    fctx.fillText(f.text,f.x,f.y);
+    fctx.shadowBlur=0;
+  }
+  fctx.globalAlpha=1;
+}
+
+/* ---------- UI ---------- */
+function toastShow(text){
+  const t=document.createElement('div');
+  t.className='toast';
+  t.textContent=text;
+  const box=$('toasts');
+  box.appendChild(t);
+  if(box.children)while(box.children.length>4&&box.removeChild&&box.firstChild)box.removeChild(box.firstChild);
+  setTimeout(()=>{t.style.opacity='0';},2500);
+  setTimeout(()=>{t.remove&&t.remove();},3200);
+}
+let modalBtns=null;
+function ensureModalBtns(){
+  if(!modalBtns){
+    modalBtns=document.createElement('div');
+    modalBtns.style.cssText='display:flex;gap:10px;justify-content:center;margin-top:16px';
+    $('modalBox').appendChild(modalBtns);
+  }
+  return modalBtns;
+}
+function showModal(title,html,btn,onClose){
+  $('modalTitle').textContent=title;
+  $('modalBody').innerHTML=html;
+  if(modalBtns)modalBtns.innerHTML='';
+  const b=$('modalBtn');
+  b.style.display='';
+  b.textContent=btn||'好的！';
+  b.onclick=()=>{$('modal').classList.add('hidden');if(onClose)onClose();};
+  $('modal').classList.remove('hidden');
+}
+function showConfirm(title,html,onYes,yesText){
+  $('modalTitle').textContent=title;
+  $('modalBody').innerHTML=html;
+  if(modalBtns)modalBtns.innerHTML='';
+  $('modalBtn').style.display='none';
+  const row=ensureModalBtns();
+  const no=document.createElement('button');
+  no.textContent='取消';
+  no.style.background='rgba(190,215,245,.8)';
+  no.style.color='#1a4a86';
+  no.onclick=()=>$('modal').classList.add('hidden');
+  const yes=document.createElement('button');
+  yes.textContent=yesText||'确认';
+  yes.style.background='linear-gradient(135deg,#2aa7ff,#0f63c8)';
+  yes.style.color='#fff';
+  yes.onclick=()=>{$('modal').classList.add('hidden');if(onYes)onYes();};
+  row.appendChild(no);row.appendChild(yes);
+  $('modal').classList.remove('hidden');
+}
+/* 重置存档：清空存档 + 原地重新随机生成地图（不依赖 reload/confirm） */
+/* 轮回：按本局表现结算道韵，清空进度并重新随机生成地图 */
+function resetGame(){
+  const rev=S.stats.revealedCount,col=S.stats.collected;
+  const earned=Math.floor(rev/800)+col*10+Math.floor(S.stats.timeSec/600);
+  S.stardust+=earned;
+  S.rebirths++;
+  checkAchievements();
+  try{localStorage.removeItem(SAVE_KEY);}catch(e){}
+  cats.length=0;decos.length=0;parts.length=0;floats.length=0;
+  homeZero=idx(W>>1,H>>1);
+  const seed=(Math.random()*0x7fffffff)|0;
+  const lb=$('loadBar'),lt=$('loadText');
+  $('loadScreen').style.display='flex';
+  generateAsync(seed,p=>{
+    lb.style.width=(p*100)+'%';
+    lt.textContent=Math.floor(p*100)+'%';
+  }).then(()=>{
+    S.rng=mulberry32(seed);
+    initPxFull();
+    initMinimap();
+    revealFloodLimited(W>>1,H>>1,14);
+    updateMinimapFull();
+    $('loadScreen').style.display='none';
+    centerOn(W/2,H/2);
+    refreshHUD();
+    while(cats.length<TARGET_CATS)spawnCat();
+    showModal('🌌 轮回成功！','<div class="big">✨ +'+earned+' 道韵</div><p>本局翻开 '+fmt(rev)+' 格 · 收集 '+col+' 件灵宝。</p><p>道韵可在「坊市 → ✨ 道韵坊市」永久强化属性（跨轮回保留）。</p><p>第 '+S.rebirths+' 世：'+unlockSummary()+'</p><p>新九州已生成，从中心重新开始问道吧～</p>');
+  });
+}
+const welcomeHtml=
+  '<p><b>欢迎来到《仙途问道录》</b>——一座 2048×2048（419 万格）的九州仙域。</p>'+
+  '<p><b>一、基本操作</b><br>· 左键翻开方格；数字表示周围 8 格内的禁制数。<br>· 右键插旗标记；滚轮缩放视野；拖拽平移；点触小地图可放大跳转。<br>· 神识扫过显示坐标（以大陆中心为原点，x 向右、y 向北）。</p>'+
+  '<p><b>二、禁制区法则</b><br>· 越靠近中心禁制越稀少，越向外越密集，边缘地带常出现 5~8 的大数字。<br>· 触碰禁制不会终结冒险，但会扣除 15% 灵石并暂停灵气 5 秒；灵石归零时将触发天劫罚世，摧毁部分已探索区域。<br>· 点触已翻开的数字，若周围旗数与数字一致，将自动翻开其余方格。</p>'+
+  '<p><b>三、闭关与探索</b><br>· 灵气 = 已翻开格子的数字总和 / 秒（数字越大收益越高）。<br>· 操作目标须距已探索区域 20 格以内；先天灵宝可无视此限制。<br>· 灵傀、巡灵傀儡可代替手动探索，离线亦可持续累积收益。</p>'+
+  '<p><b>四、九州奇观</b><br>· <b>灵泉</b>（5 处）：水域不可探索；将泉周 3 层全部翻开，可获得泉灵仙子的祝福（Lv.1~5，灵气加成）。<br>· <b>业火窟</b>：不可探索，周期性喷发，随机点开周围 100 格内的方格。<br>· <b>魔宗禁地</b>：被 五行禁制大阵包围，仅有一条通路；洞府中央的遁移阵连通洞天秘境。<br>· <b>九州天壁</b>：环绕大陆的坚固壁垒，仅四座对角之门可通行。</p>'+
+  '<p><b>五、成长体系</b><br>· 灵宝被八道禁制环绕，散落远方，翻开即可获得逆天功效；寻宝罗盘可揭示其坐标。<br>· 轮回将结算道韵，用于永久强化属性；成就与揭示率里程碑另有奖励。</p>'+
+  '<p style="color:#b06a00">祝道友道途顺遂，早日飞升！</p>';
+refreshHUD=function(){
+  $('hudGold').textContent='💰 '+fmt(S.gold);
+  $('hudRate').textContent='💎 '+fmt(rate())+'/s';
+  $('hudSum').textContent='Σ '+fmt(S.revealedSum);
+  $('hudHits').textContent='💥 '+S.stats.hits;
+  $('hudMult').textContent='×'+(S.mult*(1+0.25*S.cat)).toFixed(2);
+  const fr=$('hudFrozen');
+  if(S.frozen>0){fr.style.display='';fr.textContent='⏸ '+S.frozen+'s';}
+  else fr.style.display='none';
+  const hb=$('hudBoost');
+  if(S.boost>0){hb.style.display='';hb.textContent='⏳ ×'+S.boostMult+' '+S.boost+'s';}
+  else hb.style.display='none';
+  const chip=$('armedChip'),hint=$('armedHint');
+  if(S.armed){
+    const names={probe:'🔭 探灵符（点触地图使用）',blast:'💥 破禁符（点触地图使用）',miner:'🤖 部署灵傀（点触地图选择位置）',teleport:'📜 遁移卷轴（点触地图遁移）',autoprobe:'📡 巡灵傀儡（点触地图设置探测点）',anchor:'🗼 定界碑（点触地图任意位置，无视距离）',foil:'📄 开天符（点触地图任意位置展开，无视距离）'};
+    chip.style.display='';chip.textContent=names[S.armed]||S.armed;
+    hint.style.display='';hint.textContent=(names[S.armed]||S.armed)+' · Esc取消';
+  }else{chip.style.display='none';hint.style.display='none';}
+  refreshShop();refreshColl();refreshInfo();refreshHotbar();refreshDungeons();
+  const he=$('hudEvent');
+  if(S.event){
+    const ev=EVENTS[S.event.type];
+    const left=Math.max(0,Math.ceil((S.event.end-Date.now())/1000));
+    he.style.display='';he.textContent=ev.icon+' '+ev.name+' '+left+'s'+(ev.mult!==1?' ×'+ev.mult:'');
+  }else he.style.display='none';
+  const hse=$('hudSeason');
+  if(hse){
+    const se=seasonInfo();
+    hse.style.display='';hse.textContent=se.icon+' '+se.name;
+  }
+  const hti=$('hudTitle');
+  if(hti){hti.style.display='';hti.textContent='🏅 '+currentTitle();}
+};
+function refreshShop(){
+  const L=$('shopList');
+  const defs=[
+    {k:'probe',icon:'🔭',name:'探灵符',desc:'揭示半径 '+(probeRadius())+' 圆形区域内的数字与禁制。不会引爆禁制，禁制会直接显示出来。',cost:costProbe,owned:S.items.probe,btn:'使用',canUse:S.items.probe>0},
+    {k:'blast',icon:'💥',name:'破禁符',desc:'清除半径 '+(blastRadius())+' 区域内所有禁制与数字并安全翻开，可强行突破禁制区。',cost:costBlast,owned:S.items.blast,btn:'使用',canUse:S.items.blast>0},
+    {k:'miner',icon:'🤖',name:'灵傀',desc:'点触地图部署，灵傀沿远离中心的方向自动挖掘 5 格宽走廊。碰到禁制会牺牲（繁花祝福可返还50%造价）。',cost:costMiner,owned:S.items.miner,btn:'部署',canUse:S.items.miner>0},
+    {k:'cat',icon:'🦊',name:'聚宝灵狐',desc:'灵气永久 +25%/级。当前加成 ×'+(1+0.25*S.cat).toFixed(2)+'。',cost:costCat,owned:S.cat,btn:'升级',canUse:true},
+    {k:'treasure',icon:'🗺️',name:'寻宝罗盘',desc:'永久揭示全部 12 件灵宝的坐标，地图上出现金色藏宝星标，收藏页显示坐标。',cost:costTreasure,owned:S.treasureMap?1:0,btn:'查看',canUse:S.treasureMap},
+    {k:'shield',icon:'🛡️',name:'玄光盾',desc:'被动道具：抵挡下一次触发禁制的全部损失与灵气暂停。',cost:costShield,owned:S.items.shield,btn:'-',canUse:false},
+    {k:'hourglass',icon:'⏳',name:'光阴砂漏',desc:'激活后 30 秒内灵气 ×2（点触使用/快捷键7）。',cost:costHourglass,owned:S.items.hourglass,btn:'使用',canUse:S.items.hourglass>0},
+    {k:'teleport',icon:'📜',name:'遁移卷轴',desc:'点触地图遁移到指定位置（配合灵傀/灵宝坐标使用）。',cost:costTeleport,owned:S.items.teleport,btn:'使用',canUse:S.items.teleport>0},
+    {k:'autoprobe',icon:'📡',name:'巡灵傀儡',desc:'一次性设备：点触地图设置探测点，每 10 秒自动探测一次（不消耗探针）。',cost:()=>COST_AUTOPROBE,owned:S.items.autoprobe,btn:'部署',canUse:S.items.autoprobe>0},
+    {k:'herosword',icon:'🗡️',name:'斩魔仙剑',desc:'感应魔尊气息：揭示魔宗禁地的方位与坐标，地图上出现金色仙剑标记。',cost:()=>COST_HERO_SWORD,owned:S.heroSword?1:0,btn:'查看',canUse:S.heroSword},
+  ];
+  L.innerHTML=defs.map(d=>{
+    const bought=(d.k==='treasure'&&S.treasureMap)||(d.k==='autoprobe'&&S.items.autoprobe>0)||(d.k==='herosword'&&S.heroSword);
+    return '<div class="item">'+
+      '<div class="item-icon">'+d.icon+'</div>'+
+      '<div class="item-info">'+
+        '<div class="item-name">'+d.name+' <span class="owned">'+(d.k==='cat'?'Lv.'+d.owned:d.k==='treasure'?(bought?'✓':'未拥有'):d.k==='autoprobe'?(bought?'✓':'未拥有'):d.k==='herosword'?(bought?'✓':'未拥有'):'×'+d.owned)+'</span></div>'+
+        '<div class="item-desc">'+d.desc+'</div>'+
+        '<div class="item-cost">💰 '+fmt(d.cost())+'</div>'+
+      '</div>'+
+      '<div class="item-actions">'+
+        '<button class="btn-buy" data-item="'+d.k+'" data-act="buy"'+(bought||S.gold<d.cost()?' disabled':'')+'>'+(bought?'已拥有':'购买')+'</button>'+
+        '<button class="btn-use" data-item="'+d.k+'" data-act="use"'+(d.canUse?'':' disabled')+'>'+d.btn+'</button>'+
+      '</div>'+
+    '</div>';
+  }).join('')+starShopHtml()+worldShopHtml();
+}
+function worldShopHtml(){
+  const rows=[
+    {k:'anchor',icon:'🗼',name:'定界碑',desc:'无视距离规则：点触地图任意位置，从天而降一柄锚枪，开辟 3×3 新区域（一次性）。',cost:COST_ANCHOR,st:()=>S.worldItems.anchor},
+    {k:'foil',icon:'📄',name:'开天符',desc:'无视距离规则：展开后每秒向外清空 10 格区域，直到整个九州全部揭开（一次性）。',cost:COST_FOIL,st:()=>S.worldItems.foil},
+  ];
+  return '<div style="margin:14px 0 8px;padding-top:12px;border-top:1px dashed rgba(90,150,220,.5);font-weight:bold;color:#0f63c8">🌍 先天灵宝（购买数量仅 1）</div>'+
+    rows.map(r=>{
+      const st=r.st();
+      const label=st===0?'购买':(st===1?'使用':'已使用');
+      const disabled=st===2||(st===0&&S.gold<r.cost);
+      return '<div class="item">'+
+        '<div class="item-icon">'+r.icon+'</div>'+
+        '<div class="item-info"><div class="item-name">'+r.name+'</div><div class="item-desc">'+r.desc+'</div>'+
+        '<div class="item-cost">💰 '+fmt(r.cost)+'</div></div>'+
+        '<div class="item-actions"><button class="btn-buy" data-world="'+r.k+'"'+(disabled?' disabled':'')+'>'+label+'</button></div>'+
+      '</div>';
+    }).join('');
+}
+function starShopHtml(){
+  const rows=Object.keys(STAR_DEFS).map(k=>{
+    const d=STAR_DEFS[k],lv=S.starUpgrades[k];
+    return '<div class="item" style="padding:8px 10px">'+
+      '<div class="item-icon" style="width:36px;height:36px;font-size:20px">'+d.icon+'</div>'+
+      '<div class="item-info">'+
+        '<div class="item-name">'+d.name+' <span class="owned">Lv.'+lv+'</span></div>'+
+        '<div class="item-desc">'+d.desc+'</div>'+
+        '<div class="item-cost">✨ '+fmt(starCost(k))+'</div>'+
+      '</div>'+
+      '<div class="item-actions">'+
+        '<button class="btn-buy" data-star="'+k+'"'+(S.stardust<starCost(k)?' disabled':'')+'>强化</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  return '<div style="margin:14px 0 8px;padding-top:12px;border-top:1px dashed rgba(90,150,220,.5);font-weight:bold;color:#0f63c8">✨ 道韵坊市（道韵：'+fmt(S.stardust)+'）<span style="font-weight:normal;font-size:11px;color:#5a7297"> · 轮回可获得道韵，强化永久生效</span></div>'+rows;
+}
+function refreshColl(){
+  const grid=$('collGrid');
+  const found=S.colls.filter(c=>c.collected).length;
+  $('collCount').textContent='已收集 '+found+' / '+COLLECT_COUNT+(S.treasureMap?'（🗺️ 已拥有寻宝罗盘）':'');
+  grid.innerHTML=S.colls.map(c=>{
+    const coord=S.treasureMap?'<div class="coll-desc" style="color:#b06a00">📍 ('+(c.x-(W>>1))+', '+((H>>1)-c.y)+')</div>':'';
+    if(c.collected){
+      const e=EFFECTS[c.effectId];
+      return '<div class="coll-card found"><div class="coll-icon">'+e.icon+'</div><div class="coll-name">'+e.name+'</div><div class="coll-desc">'+e.desc+'</div>'+coord+'</div>';
+    }
+    return '<div class="coll-card"><div class="coll-icon unknown">❓</div><div class="coll-name">？？？</div><div class="coll-desc">被八道禁制环绕的宝物</div>'+coord+'</div>';
+  }).join('');
+}
+/* ---------- 秘境名录：探明遁移阵即发现 ---------- */
+function checkDungeons(){
+  if(!S.dungeons.length)return;
+  for(let k=0;k<S.dungeons.length;k++){
+    const d=S.dungeons[k];
+    if(S.dungeonsDiscovered.includes(d.id))continue;
+    if(d.px<0)continue;
+    if(S.revMap[idx(d.px,d.py)]){
+      S.dungeonsDiscovered.push(d.id);
+      FX.toast('🏰 发现秘境：'+d.icon+' '+d.name+'！');
+      refreshHUD();saveSoon();
+    }
+  }
+}
+function refreshDungeons(){
+  const L=document.getElementById('dungeonList');
+  if(!L)return;
+  const rare=document.getElementById('rareList');
+  if(rare){
+    const owned=Object.keys(RARE_DEFS).filter(k=>S.rareItems[k]);
+    rare.textContent='限 定 稀 有 道 具：'+owned.length+' / '+Object.keys(RARE_DEFS).length;
+  }
+  L.innerHTML=S.dungeons.map(d=>{
+    const found=S.dungeonsDiscovered.includes(d.id);
+    const dd=DUNGEON_DEFS[d.id];
+    const rd=RARE_DEFS[d.rare];
+    const rareOwned=S.rareItems[d.rare];
+    return '<div class="item">'+
+      '<div class="item-icon">'+(found?d.icon:'❓')+'</div>'+
+      '<div class="item-info">'+
+        '<div class="item-name">'+(found?d.name:'？？？')+' <span class="owned">'+(found?d.floors+'层':'未发现')+'</span></div>'+
+        '<div class="item-desc">'+(found?(dd?dd.desc:'')+' · 稀有奖励：'+rd.icon+rd.name+(rareOwned?'（已获得）':''):'坐标未知的秘境入口……探明其遁移阵后解锁')+'</div>'+
+        '<div class="item-cost">'+(found?('📍 ('+(d.px-(W>>1))+', '+((H>>1)-d.py)+')'):'')+'</div>'+
+      '</div>'+
+      (found?'<div class="item-actions"><button class="btn-use" data-dun="'+d.id+'" data-act="enter">进入</button><button class="btn-use" data-dun="'+d.id+'" data-act="view" style="background:linear-gradient(135deg,#4aa8ff,#0f63c8)">位置</button></div>':'')+
+    '</div>';
+  }).join('');
+}
+function refreshInfo(){
+  const pct=(S.stats.revealedCount/N*100).toFixed(3);
+  $('infoList').innerHTML=
+    '<div>🗺️ 地图：<b>2048×2048</b>（'+fmt(N)+' 格）</div>'+
+    '<div>🔍 已翻开：<b>'+fmt(S.stats.revealedCount)+'</b>（'+pct+'%）</div>'+
+    '<div>💣 已触发禁制：<b>'+S.stats.hits+'</b> 次（玄光盾抵挡 '+S.stats.shieldBlocks+' 次）</div>'+
+    '<div>Σ 数字总和：<b>'+fmt(S.revealedSum)+'</b>（灵气基准）</div>'+
+    '<div>💎 当前灵气：<b>'+fmt(rate())+'/s</b>'+(S.boost>0?'（⏳ ×'+S.boostMult+'）':'')+'</div>'+
+    '<div>📈 公式：Σ × 倍率'+(S.cat?' × 聚宝灵狐'+(1+0.25*S.cat).toFixed(2):'')+(S.starUpgrades.income?' × 道韵'+(1+0.10*S.starUpgrades.income).toFixed(2):'')+'</div>'+
+    '<div>🤖 灵傀：存活 <b>'+S.miners.length+'</b> · 牺牲 '+S.stats.minerLost+' · 退役 '+S.stats.minerRetired+'</div>'+
+    '<div>⏱️ 在线：<b>'+fmtDur(S.stats.timeSec)+'</b></div>'+
+    '<div>💎 灵宝：<b>'+S.stats.collected+'/'+COLLECT_COUNT+'</b>（🗺️ 寻宝罗盘：'+(S.treasureMap?'已拥有':'未拥有')+'）</div>'+
+    '<div>🦊 聚宝灵狐：Lv.'+S.cat+'（+'+S.cat*25+'%）</div>'+
+    '<div>✨ 道韵：<b>'+fmt(S.stardust)+'</b> · 轮回：<b>'+S.rebirths+'</b> 次</div>'+
+    '<div>🧜‍♀️ 泉灵仙子赐福：<b>'+lakeBlessCount()+' / '+Math.max(1,S.lakeData.length)+'</b>'+(lakeBlessCount()?'（灵气 +'+(lakeBlessCount()*10)+'%）':'')+'</div>'+
+    '<div>🌍 先天灵宝：🗼 定界碑 '+(S.worldItems.anchor===0?'未购':S.worldItems.anchor===1?'待使用':'已使用')+' · 📄 开天符 '+(S.worldItems.foil===0?'未购':S.worldItems.foil===1?'待展开':'已展开')+(S.foil&&S.foil.active?'（展开中）':'')+'</div>'+
+    '<div>🏰 秘境：发现 <b>'+S.dungeonsDiscovered.length+' / '+S.dungeons.length+'</b> · 🗡️ 斩魔仙剑：'+(S.heroSword?'已拥有':'未拥有')+'</div>'+
+    '<div>🌟 限定稀有道具：<b>'+Object.keys(RARE_DEFS).filter(k=>S.rareItems[k]).length+' / '+Object.keys(RARE_DEFS).length+'</b> '+Object.keys(RARE_DEFS).map(k=>S.rareItems[k]?RARE_DEFS[k].icon:'').join('')+'</div>'+
+    '<div>🏅 称号：<b>'+currentTitle()+'</b>（'+S.achievements.length+'/'+ACHIEVEMENTS.length+' 成就 · '+(S.questIdx)+'/'+QUESTS.length+' 主线）</div>'+
+    '<div>📜 主线任务：<b>'+(S.questIdx<QUESTS.length?QUESTS[S.questIdx].obj:'✅ 已全部完成！')+'</b></div>'+
+    '<div>🌍 经历事件：'+(S.eventsSeen.length?S.eventsSeen.map(t=>EVENTS[t].icon+' '+EVENTS[t].name).join(' · '):'（尚无）')+' · ⚔️ 剿灭野外妖王：'+S.bossesKilled+'</div>'+
+    '<div style="margin-top:10px;padding-top:8px;border-top:1px dashed rgba(90,150,220,.5)">🏆 成就 <b>'+S.achievements.length+'/'+ACHIEVEMENTS.length+'</b></div>'+
+    ACHIEVEMENTS.map(a=>{
+      const done=S.achievements.includes(a.id);
+      return '<div>'+(done?'✅':'⬜')+' '+a.icon+' '+a.name+' — '+a.desc+(done?(a.gold?' <b>+'+fmt(a.gold)+'💰</b>':'')+(a.star?' <b>+'+a.star+'✨</b>':''):'')+'</div>';
+    }).join('')+
+    '<div style="margin-top:10px;padding-top:8px;border-top:1px dashed rgba(90,150,220,.5)">📈 揭示率里程碑</div>'+
+    MILESTONES.map((m,i)=>'<div>'+(S.milestones&(1<<i)?'✅':'⬜')+' 揭示 '+Math.round(m.pct*100)+'% → +'+fmt(m.reward)+'💰</div>').join('')+
+    '<div style="margin-top:10px;padding-top:8px;border-top:1px dashed rgba(90,150,220,.5)">🗺️ 区域圈层（小地图同心圆）</div>'+
+    '<div>内→外：<b>福地</b> → <b>灵脉</b> → <b>凶地</b> → <b>绝域</b>（禁制越来越密，大数字越来越多）</div>';
+}
+
+/* ---------- 闭关与循环 ---------- */
+function goldTick(){
+  if(S.frozen>0)S.frozen--;
+  else S.gold+=rate();
+  if(S.boost>0)S.boost--;
+  S.stats.timeSec++;
+  seasonTick();
+  checkMilestones();
+  checkAchievements();
+  checkQuests();
+  refreshHUD();
+}
+function openPopup(title,id){
+  $('popupTitle').textContent=title;
+  ['tab-shop','tab-coll','tab-info','tab-set'].forEach(p=>$(p).classList.remove('show'));
+  $(id).classList.add('show');
+  $('popup').classList.remove('hidden');
+}
+function closePopup(){$('popup').classList.add('hidden');}
+/* ---------- 道具专属像素图标 ---------- */
+const ICON_PALETTE={'.':null,'M':[255,126,179],'L':[244,236,255],'D':[43,33,71],'G':[255,209,102],'R':[255,92,138],'B':[86,200,240],'P':[177,140,255],'W':[248,240,255],'O':[255,169,77],'K':[30,20,50],'N':[76,214,160],'C':[120,160,255]};
+const ICON_ART={
+ probe:[
+  '..........','...BBBB...','..B....B..','..B....B..','..B....B..','...BBBB...','....GG....','...GG.....','..GG......','..........'],
+ blast:[
+  '..........','....O.....','...OOO....','..KKKKK...','.KKKKKKK..','.KKKKKKK..','.KKKKKKK..','..KKKKK...','...KKK....','....K.....'],
+ miner:[
+  '....W.....','....G.....','..PPPPPP..','..PW..WP..','..P....P..','..PPPPPP..','...PPPP...','...P..P...','...P..P...','..........'],
+ cat:[
+  '..........','.D......D.','.OO....OO.','.OOOOOOOO.','.OWWWWWWO.','.OKWWWWKO.','.OWWWWWWO.','.OWWKKWWO.','..OOOOOO..','..........'],
+ treasure:[
+  '.GGGGGGGG.','.G......G.','.G..RR..G.','.G..RR..G.','.G..RR..G.','.G..RR..G.','.G......G.','.GGGGGGGG.','..........','..........'],
+ shield:[
+  '..........','..BBBBBB..','.BB.BB.BB.','.B......B.','.B......B.','.B......B.','..B....B..','...B..B...','....BB....','..........'],
+ hourglass:[
+  '..........','..GGGGGG..','..G....G..','...G..G...','....GG....','....GG....','...G..G...','..G....G..','..GGGGGG..','..........'],
+ teleport:[
+  '..........','.WWWWWWWW.','.W......W.','.W.GG...W.','.W..GG..W.','.WWWWWWWW.','.W......W.','.W......W.','.WWWWWWWW.','..........'],
+ autoprobe:[
+  '..........','.....B....','....BB....','...BB.....','..BB.B....','.BB..B....','.BB..B....','..BB.B....','...BB.....','..........'],
+ anchor:[
+  '..........','.....GG...','..GGGGG...','.....G....','.....G....','..G..G....','.G.G.G....','..G.G.....','...G......','..GGG.....'],
+ foil:[
+  '..........','.WWWWWWWW.','.W....WW..','.W...WW...','.W..WW....','.W.WW.....','.WWW......','.W........','.WWWWWWWW.','..........'],
+ sword:[
+  '..........','....LLLL..','....LLLL..','....LLLL..','.K..LLLL..','.KKLLLL...','.K..LLLL..','....LLLL..','....LLLL..','...GGGG...'],
+};
+const ITEM_KEYS=['probe','blast','miner','cat','treasure','shield','hourglass','teleport','autoprobe','anchor','foil','herosword'];
+const ITEM_NAMES={probe:'探针',blast:'爆破',miner:'灵傀',cat:'灵狐',treasure:'藏宝',shield:'玄光盾',hourglass:'沙漏',teleport:'遁移',autoprobe:'探针站',anchor:'锚点',foil:'开天符',herosword:'仙剑','':'空'};
+const ITEM_ICONS={};
+function buildItemIcons(){
+  for(const k of ITEM_KEYS){
+    const art=ICON_ART[k];
+    if(!art)continue;
+    const cvs=document.createElement('canvas');
+    const s=art.length;
+    cvs.width=s;cvs.height=s;
+    const cx=cvs.getContext('2d');
+    for(let y=0;y<s;y++)for(let x=0;x<s;x++){
+      const ch=art[y][x];
+      const c=ICON_PALETTE[ch];
+      if(!c)continue;
+      cx.fillStyle='rgb('+c[0]+','+c[1]+','+c[2]+')';
+      cx.fillRect(x,y,1,1);
+    }
+    ITEM_ICONS[k]=cvs.toDataURL();
+  }
+}
+function itemIconHTML(k){
+  if(k&&ITEM_ICONS[k])return '<img class="s-img" src="'+ITEM_ICONS[k]+'" alt=""/>';
+  return k?'🔮':'🕳️';
+}
+function itemName(k){return ITEM_NAMES[k]||k||'';}
+
+/* ---------- 可自由替换的道具栏 ---------- */
+let hotbarEditMode=false;
+function setHotbarEditMode(on){
+  hotbarEditMode=on;
+  const btn=$('hotbarEdit');
+  if(btn){
+    btn.textContent=on?'✔':'🔧';
+    btn.style.background=on?'rgba(150,205,255,.7)':'rgba(255,255,255,.85)';
+    btn.style.border=on?'1px solid #2aa7ff':'1px dashed rgba(90,150,220,.7)';
+  }
+}
+function buildHotbar(){
+  const slots=S.hotbar||[];
+  $('hotbar').innerHTML=slots.map((k,i)=>
+    '<div class="slot'+(k?'':' empty')+'" data-key="'+(k||'')+'" data-idx="'+i+'">'+
+      '<span class="s-icon">'+itemIconHTML(k)+'</span>'+
+      '<span class="s-count"></span>'+
+      '<span class="s-name">'+itemName(k)+'</span>'+
+      '<span class="s-key">'+(i+1)+'</span>'+
+    '</div>').join('')+
+    '<button id="hotbarEdit" title="编辑道具栏（点触某格替换道具）" style="width:58px;height:58px;border-radius:16px;background:rgba(255,255,255,.85);border:1px dashed rgba(90,150,220,.7);color:#1a4a86;font-size:18px;cursor:pointer;transition:.15s">🔧</button>';
+}
+function refreshHotbar(){
+  const counts={probe:S.items.probe,blast:S.items.blast,miner:S.items.miner,shield:S.items.shield,hourglass:S.items.hourglass,teleport:S.items.teleport,autoprobe:S.items.autoprobe};
+  const slots=document.querySelectorAll('#hotbar .slot');
+  for(let i=0;i<slots.length;i++){
+    const sl=slots[i];
+    const k=sl.dataset.key;
+    if(!k)continue;
+    const cnt=sl.querySelector('.s-count');
+    if(k==='cat'){cnt.textContent='Lv.'+S.cat;sl.classList.toggle('active',false);}
+    else if(k==='treasure'){cnt.textContent=S.treasureMap?'✓':'';sl.classList.toggle('active',false);}
+    else if(k==='herosword'){cnt.textContent=S.heroSword?'✓':'';sl.classList.toggle('active',false);}
+    else if(k==='anchor'){cnt.textContent=S.worldItems.anchor===1?'!':(S.worldItems.anchor===2?'✓':'');sl.classList.toggle('active',S.armed==='anchor');}
+    else if(k==='foil'){cnt.textContent=S.worldItems.foil===1?'!':(S.worldItems.foil===2?'✓':'');sl.classList.toggle('active',S.armed==='foil');}
+    else if(k==='hourglass'){cnt.textContent=S.boost>0?'⏳'+S.boost:'×'+counts[k];sl.classList.toggle('active',S.boost>0);}
+    else if(k==='autoprobe'){cnt.textContent=S.autoProbe?'📡':'×'+counts[k];sl.classList.toggle('active',S.armed==='autoprobe');}
+    else{cnt.textContent='×'+counts[k];sl.classList.toggle('active',S.armed===k);}
+  }
+}
+function handleSlotAction(k){
+  if(!k)return;
+  if(k==='probe'||k==='blast'||k==='miner'||k==='teleport'||k==='autoprobe'||k==='anchor'||k==='foil')toggleArm(k);
+  else if(k==='cat')buyItem('cat');
+  else if(k==='treasure'){if(S.treasureMap)showTreasureModal();else buyItem('treasure');}
+  else if(k==='shield')buyItem('shield');
+  else if(k==='hourglass')activateHourglass();
+  else if(k==='herosword'){if(S.heroSword)showHeroSwordModal();else buyItem('herosword');}
+}
+function openHotbarPicker(slotIdx){
+  const choices=['','probe','blast','miner','cat','treasure','shield','hourglass','teleport','autoprobe','anchor','foil','herosword'];
+  const html='<p style="text-align:center;color:#33527f;font-size:13px">为第 <b style="color:#b06a00">'+(slotIdx+1)+'</b> 格选择道具：</p>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+
+    choices.map(k=>{
+      const picked=(S.hotbar[slotIdx]===k);
+      return '<button data-pick="'+slotIdx+'" data-key="'+k+'" style="'+(picked?'border:2px solid #2aa7ff;background:rgba(150,205,255,.7);':'border:1px solid rgba(90,150,220,.55);background:rgba(255,255,255,.9);')+'color:#123c66;border-radius:12px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;cursor:pointer">'+
+        '<span style="font-size:20px">'+(k?itemIconHTML(k):'🕳️')+'</span>'+(k?itemName(k):'空')+'</button>';
+    }).join('')+'</div>';
+  showModal('🔧 编辑道具栏',html);
+  const body=document.getElementById('modalBody');
+  if(body&&body.querySelectorAll){
+    body.querySelectorAll('button[data-pick]').forEach(b=>{
+      b.onclick=()=>{
+        const idx=+b.dataset.pick,key=b.dataset.key;
+        S.hotbar[idx]=key;
+        saveSoon();
+        buildHotbar();refreshHotbar();
+        setHotbarEditMode(false); /* 选完自动退出编辑模式 */
+        $('modal').classList.add('hidden');
+      };
+    });
+  }
+}
+function buildShell(){
+  buildItemIcons();
+  const petals=['🌸','💮','✨','🎀','🌷'];
+  const wrap=$('petals');
+  for(let i=0;i<14;i++){
+    const p=document.createElement('div');
+    p.className='petal';
+    const orig=petals[i%petals.length];
+    p.textContent=orig;
+    p.dataset.orig=orig;
+    p.style.left=(Math.random()*100)+'%';
+    p.style.fontSize=(10+Math.random()*14)+'px';
+    p.style.animationDuration=(9+Math.random()*10)+'s';
+    p.style.animationDelay=(-Math.random()*12)+'s';
+    p.style.opacity=(0.3+Math.random()*0.45).toFixed(2);
+    wrap.appendChild(p);
+    petalEls.push(p);
+  }
+  buildHotbar();
+  $('shopList').addEventListener('click',e=>{
+    const world=e.target.closest('button[data-world]');
+    if(world){
+      const k=world.dataset.world;
+      if(S.worldItems[k]===0)buyItem(k);else setArmed(k);
+      return;
+    }
+    const star=e.target.closest('button[data-star]');
+    if(star){buyStar(star.dataset.star);return;}
+    const b=e.target.closest('button');
+    if(!b)return;
+    const k=b.dataset.item,act=b.dataset.act;
+    if(act==='buy')buyItem(k);
+    else if(k==='treasure')showTreasureModal();
+    else if(k==='herosword')showHeroSwordModal();
+    else if(k==='hourglass')activateHourglass();
+    else if(k==='autoprobe')setArmed('autoprobe');
+    else if(k==='shield'){/* 被动道具，无需使用 */}
+    else toggleArm(k);
+  });
+  $('hotbar').addEventListener('click',e=>{
+    const s=e.target.closest('.slot');
+    if(!s)return;
+    const k=s.dataset.key;
+    if(hotbarEditMode){openHotbarPicker(+s.dataset.idx);return;}
+    handleSlotAction(k);
+  });
+  $('hotbarEdit')&&$('hotbarEdit').addEventListener('click',()=>{
+    setHotbarEditMode(!hotbarEditMode);
+  });
+  $('armedChip').addEventListener('click',()=>setArmed(null));
+  $('btnShop').addEventListener('click',()=>openPopup('🏪 坊市','tab-shop'));
+  $('btnColl').addEventListener('click',()=>openPopup('💎 灵宝','tab-coll'));
+  $('btnDungeons').addEventListener('click',()=>{refreshDungeons();openPopup('🏰 秘境名录','tab-dungeons');});
+  $('dungeonList').addEventListener('click',e=>{
+    const b=e.target.closest('button');
+    if(!b)return;
+    const id=+b.dataset.dun;
+    closePopup();
+    if(b.dataset.act==='enter')openDungeon(id);
+    else{const d=S.dungeons[id];if(d&&d.px>=0){view.scale=clamp(view.scale*1.6,fitScale(),64);centerOn(d.px,d.py);}}
+  });
+  $('btnInfo').addEventListener('click',()=>openPopup('📊 天机','tab-info'));
+  $('btnSet').addEventListener('click',()=>openPopup('⚙️ 设置','tab-set'));
+  $('popupClose').addEventListener('click',closePopup);
+  $('popup').addEventListener('click',e=>{if(e.target===$('popup'))closePopup();});
+  $('help2Btn').addEventListener('click',()=>showModal('🌸 玩法说明',welcomeHtml));
+  $('soundBtn').addEventListener('click',()=>{
+    SFX.muted=!SFX.muted;
+    $('soundBtn').textContent=SFX.muted?'关':'开';
+  });
+  $('musicBtn').addEventListener('click',()=>{
+    MUSIC.on=!MUSIC.on;
+    S.musicOn=MUSIC.on;
+    $('musicBtn').textContent=MUSIC.on?'开':'关';
+    saveSoon();
+  });
+  $('musicVol').addEventListener('input',e=>{
+    MUSIC.vol=e.target.value/100;
+    S.musicVol=MUSIC.vol;
+    saveSoon();
+  });
+  $('saveBtn').addEventListener('click',()=>{saveGame();showModal('💾 已保存','<p>存档已写入本地。</p>');});
+  $('resetBtn').addEventListener('click',()=>{
+    showConfirm('🌸 轮回？','<p>轮回将清空全部进度、灵石与灵宝，并重新随机生成一张全新的九州地图。</p><p>确定要轮回吗？</p>',()=>resetGame(),'确认轮回');
+  });
+  $('zoomIn').addEventListener('click',()=>zoomAt(cw/2,ch/2,1.3));
+  $('zoomOut').addEventListener('click',()=>zoomAt(cw/2,ch/2,0.77));
+  $('mmIn').addEventListener('click',mmZoomIn);
+  $('mmOut').addEventListener('click',mmZoomOut);
+  $('flagBtn').addEventListener('click',()=>setFlagMode(!flagMode));
+  $('btnCenter').addEventListener('click',()=>centerOn(W/2,H/2));
+  $('btnFit').addEventListener('click',()=>{
+    view.scale=fitScale();
+    centerOn(W/2,H/2);
+  });
+  $('soundBtn').textContent=SFX.muted?'关':'开';
+}
+function generateAsync(seedVal,onProgress){
+  return new Promise(resolve=>{
+    S.seed=seedVal;
+    const rng=mulberry32(seedVal);
+    S.mineMap=new Uint8Array(N);S.numMap=new Uint8Array(N);
+    S.revMap=new Uint8Array(N);S.flagMap=new Uint8Array(N);S.craterMap=new Uint8Array(N);
+    S.collMap=new Uint8Array(N);S.colls=[];S.terrainMap=new Uint8Array(N);S.lakeData=[];
+    resetMeta();
+    const cx=W/2,cy=H/2,maxR=Math.hypot(cx,cy),safeR=8;
+    let y=0;
+    const rows=()=>{
+      const t0=performance.now();
+      while(y<H&&performance.now()-t0<14){
+        const dy=y-cy+0.5,dy2=dy*dy,base=y*W;
+        for(let x=0;x<W;x++){
+          const dx=x-cx+0.5;
+          const r=Math.sqrt(dx*dx+dy2)/maxR;
+          if(r*maxR<safeR)continue;
+          if(rng()<0.04+0.56*Math.pow(r,1.5))S.mineMap[base+x]=1;
+        }
+        y++;
+      }
+      if(y<H){onProgress(0.03+0.7*(y/H));setTimeout(rows,0);}
+      else{placeTerrain(rng,cx,cy,maxR);onProgress(0.78);setTimeout(()=>numbersPass(rng,cx,cy,maxR,onProgress,resolve),0);}
+    };
+    rows();
+  });
+}
+function numbersPass(rng,cx,cy,maxR,onProgress,resolve){
+  let i=0;
+  S.numMap.fill(0); /* 地形/禁制墙调整后整体重算 */
+  const step=()=>{
+    const t0=performance.now();
+    while(i<N&&performance.now()-t0<14){
+      if(S.mineMap[i])scatterMine(i);
+      i++;
+    }
+    if(i<N){onProgress(0.8+0.14*(i/N));setTimeout(step,0);}
+    else{placeCollectibles(rng,cx,cy,maxR);onProgress(1);setTimeout(resolve,0);}
+  };
+  step();
+}
+function boot(){
+  buildShell();
+  resize();
+  const saved=loadSave();
+  const seed=saved?saved.seed:((Math.random()*0x7fffffff)|0);
+  const lb=$('loadBar'),lt=$('loadText');
+  generateAsync(seed,p=>{
+    lb.style.width=(p*100)+'%';
+    lt.textContent=Math.floor(p*100)+'%';
+  }).then(()=>{
+    S.rng=mulberry32(seed);
+    if(saved){
+      unpackBits(saved.rev,S.revMap);
+      unpackBits(saved.flags,S.flagMap);
+      S.gold=saved.gold;
+      S.revealedSum=saved.revealedSum;
+      S.mult=saved.mult;
+      S.cat=saved.cat;
+      S.offlineMult=saved.offlineMult||1;
+      S.bonus=Object.assign({probeR:0,blastR:0,hitLoss:1,dodge:0,minerSpeed:1,minerRefund:0},saved.bonus);
+      S.items=Object.assign({probe:0,blast:0,miner:0,shield:0,hourglass:0,teleport:0,autoprobe:0},saved.items);
+      S.stats=Object.assign({revealedCount:0,hits:0,collected:0,minerLost:0,minerRetired:0,timeSec:0,shieldBlocks:0,dungeonWins:0},saved.stats);
+      S.frozen=saved.frozen||0;
+      S.treasureMap=!!saved.treasureMap;
+      S.stardust=saved.stardust||0;
+      S.starUpgrades=Object.assign({income:0,miner:0,probeR:0,blastR:0,offline:0,shield:0},saved.starUpgrades);
+      S.achievements=saved.achievements||[];
+      S.rebirths=saved.rebirths||0;
+      S.milestones=saved.milestones||0;
+      S.shield=saved.shield||0;
+      S.boost=saved.boost||0;
+      S.autoProbe=saved.autoProbe||null;
+      S.worldItems=Object.assign({anchor:0,foil:0},saved.worldItems);
+      S.foil=saved.foil||null;
+      S.lakeBlessed=saved.lakeBlessed||0;
+      S.heroSword=!!saved.heroSword;
+      S.dungeonsDiscovered=Array.isArray(saved.dungeonsDiscovered)?saved.dungeonsDiscovered:[];
+      S.rareItems=Object.assign({sword:false,frost:false,flame:false,void:false,bone:false},saved.rareItems);
+      if(Array.isArray(saved.hotbar)&&saved.hotbar.length===8)S.hotbar=saved.hotbar;
+      S.season=(typeof saved.season==='number')?saved.season:0;
+      S.seasonT=saved.seasonT||Date.now();
+      S.eventsSeen=Array.isArray(saved.eventsSeen)?saved.eventsSeen:[];
+      S.bossesKilled=saved.bossesKilled||0;
+      S.questIdx=saved.questIdx||0;
+      S.musicOn=!!saved.musicOn;
+      S.musicVol=(typeof saved.musicVol==='number')?saved.musicVol:0.45;
+      (saved.collectedMask||0).toString(2).split('').reverse().forEach((v,i)=>{if(v==='1'&&S.colls[i])S.colls[i].collected=true;});
+      S.miners=(saved.miners||[]).map(m=>({px:m.px,py:m.py,dx:m.dx,dy:m.dy,acc:0,cost:m.cost}));
+      const earned=applyOffline(saved);
+      if(earned>0)showModal('🌙 欢迎回来！','<div class="big">💰 '+fmt(earned)+'</div><p>离线 '+fmtDur((Date.now()-saved.t)/1000)+'，灵傀们替你挖到了灵石！</p><p>（离线效率50%，「时之沙」可提升至×5）</p>');
+      else showModal('🌸 欢迎回来！','<p>存档已加载，继续探索吧！</p>');
+    }
+    initPxFull();
+    initMinimap();
+    if(saved){
+      fullSprinkleDecos();
+    }else{
+      revealFloodLimited(W>>1,H>>1,14);
+      showModal('☯ 仙途问道录',welcomeHtml,'开始问道！');
+    }
+    updateMinimapFull();
+    $('loadScreen').style.display='none';
+    centerOn(W/2,H/2);
+    refreshHUD();
+    if(!S.seasonT)S.seasonT=Date.now();
+    applyAmbientPetals();
+    while(cats.length<TARGET_CATS)spawnCat();
+    let lastMinerT=performance.now();
+    setInterval(()=>{const now=performance.now();stepMiners(now-lastMinerT);lastMinerT=now;},100);
+    setInterval(goldTick,1000);
+    nextEventAt=Date.now()+90000+Math.random()*60000;
+    setInterval(eventTick,1000);
+    S.bossNext=Date.now()+150000+Math.random()*120000;
+    S.merchantNext=Date.now()+90000+Math.random()*120000;
+    setInterval(wanderTick,2000);
+    setInterval(()=>{while(cats.length<TARGET_CATS)spawnCat();},3000);
+    setInterval(()=>{ /* 巡灵傀儡 */
+      if(S.autoProbe){probeReveal(S.autoProbe.x,S.autoProbe.y);FX.pop();refreshHUD();saveSoon();}
+    },10000);
+    setInterval(foilTick,1000);
+    volcanoCenter=findVolcanoCenter();
+    if(volcanoCenter)setInterval(eruptVolcano,30000);
+    setInterval(()=>saveGame(),15000);
+    /* 音乐设置恢复 */
+    MUSIC.vol=S.musicVol;
+    if(S.musicOn)MUSIC.on=true;
+    $('musicBtn').textContent=MUSIC.on?'开':'关';
+    $('musicVol').value=Math.round(S.musicVol*100);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame();});
+    window.addEventListener('beforeunload',saveGame);
+    let last=performance.now();
+    const loop=t=>{
+      const dt=Math.min(50,t-last);last=t;
+      updateFx(dt);
+      stepCats(dt);
+      springView(dt);
+      render(t);
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  });
+}
+window.addEventListener('error',e=>{try{showModal('⚠️ 出错了','<p>'+e.message+'</p>');}catch(_){}});
+/* 暴露浏览器侧状态供冒烟测试 */
+MS.cats=cats;MS.decos=decos;MS.resetGame=resetGame;MS.spawnCat=spawnCat;MS.stepCats=stepCats;MS.sprinkleDecos=sprinkleDecos;
+MS.MUSIC=MUSIC;MS.activateHourglass=activateHourglass;MS.buyStar=buyStar;MS.useTeleport=useTeleport;MS.setAutoProbe=setAutoProbe;
+MS.useAnchor=useAnchor;MS.activateFoil=activateFoil;MS.foilTick=foilTick;MS.checkLakes=checkLakes;MS.eruptVolcano=eruptVolcano;MS.meteorRain=meteorRain;MS.openDungeon=openDungeon;MS.dungeonDig=dungeonDig;
+MS.startEvent=startEvent;MS.endEvent=endEvent;MS.eventTick=eventTick;MS.showHeroSwordModal=showHeroSwordModal;MS.checkDungeons=checkDungeons;MS.refreshDungeons=refreshDungeons;MS.buildHotbar=buildHotbar;MS.handleSlotAction=handleSlotAction;
+MS.mmZoomIn=mmZoomIn;MS.mmZoomOut=mmZoomOut;
+MS.setFlagMode=setFlagMode;MS.spawnBoss=spawnBoss;MS.spawnMerchant=spawnMerchant;MS.openBossBattle=openBossBattle;MS.openMerchant=openMerchant;MS.checkQuests=checkQuests;MS.currentTitle=currentTitle;MS.unlockSummary=unlockSummary;MS.merchantBuy=merchantBuy;MS.centerOn=centerOn;MS.setArmed=setArmed;MS.getInputState=()=>({down,moved,flagMode,pointerCount:Object.keys(pointers).length,longFired});
+Object.defineProperty(MS,'view',{get:()=>view,configurable:true});
+Object.defineProperty(MS,'flagMode',{get:()=>flagMode,configurable:true});
+Object.defineProperty(MS,'dungeon',{get:()=>dungeon,configurable:true});
+Object.defineProperty(MS,'mmView',{get:()=>mmView,configurable:true});
+boot();
+}
+</script>
+</body>
+</html>
