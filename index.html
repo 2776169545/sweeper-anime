@@ -49,6 +49,7 @@ canvas#fx{position:absolute;inset:0;pointer-events:none}
 #zoomCtl{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px;z-index:20}
 #zoomCtl button{width:38px;height:38px;font-size:16px;border-radius:10px}
 #zoomCtl button.wide{width:auto;padding:0 10px;font-size:12px;height:32px}
+#zoomCtl button.active{background:linear-gradient(135deg,#ff7eb3,#b18cff);border-color:transparent;color:#fff}
 #tip{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-size:11px;color:#c9b8e8;background:rgba(10,5,25,.5);padding:4px 12px;border-radius:999px;z-index:20;white-space:nowrap;pointer-events:none}
 #hotbar{position:absolute;left:50%;bottom:46px;transform:translateX(-50%);display:flex;gap:8px;z-index:22}
 .slot{width:58px;height:58px;border-radius:16px;background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.16);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;cursor:pointer;transition:.15s;backdrop-filter:blur(4px);box-shadow:0 4px 12px rgba(0,0,0,.25)}
@@ -137,6 +138,8 @@ button:disabled{filter:grayscale(.8);opacity:.45;cursor:not-allowed}
       <div class="hud-item frozen" id="hudFrozen" style="display:none">⏸</div>
       <div class="hud-item" id="hudBoost" style="display:none;background:linear-gradient(135deg,#ffd166,#ffb347);color:#4a2c00">⏳</div>
       <div class="hud-item" id="hudEvent" style="display:none;background:linear-gradient(135deg,#b18cff,#ff7eb3);color:#fff">🌫️</div>
+      <div class="hud-item" id="hudSeason" style="display:none;background:linear-gradient(135deg,#69db7c,#74c0fc);color:#123">🌿</div>
+      <div class="hud-item" id="hudTitle" style="display:none;background:linear-gradient(135deg,#ffd166,#ff9f43);color:#4a2c00">🏅</div>
     </div>
     <div class="topbtns">
       <button id="armedChip" class="armed-chip" style="display:none"></button>
@@ -158,6 +161,7 @@ button:disabled{filter:grayscale(.8);opacity:.45;cursor:not-allowed}
     <div id="zoomCtl">
       <button id="zoomIn" title="放大">＋</button>
       <button id="zoomOut" title="缩小">－</button>
+      <button class="wide" id="flagBtn" title="旗子模式（触屏插旗）">🚩</button>
       <button class="wide" id="btnCenter" title="回到中心">◎</button>
       <button class="wide" id="btnFit" title="查看全图">⛶</button>
     </div>
@@ -226,7 +230,7 @@ function clamp(v,a,b){return v<a?a:(v>b?b:v);}
 const DIRS4=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
 /* 雷密度：越靠近中心越少，越远离越多（边缘高达60% → 大量5/6/7/8） */
 function density(r){return 0.04+0.56*Math.pow(r,1.5);}
-function fmt(n){if(!isFinite(n))return'∞';if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1e4)return(n/1e3).toFixed(1)+'k';return ''+Math.floor(n);}
+function fmt(n){if(!isFinite(n))return'∞';const u=[[1e15,'P'],[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e4,'k']];for(const [v,s] of u){if(n>=v)return(n/v).toFixed(2).replace(/\.0+$/,'')+s;}return ''+Math.floor(n);}
 function fmtDur(sec){sec=Math.floor(sec);const h=(sec/3600)|0,m=((sec%3600)/60)|0,s=sec%60;if(h)return h+'小时'+m+'分';if(m)return m+'分'+s+'秒';return s+'秒';}
 
 /* ---------- 收藏品效果（逆天功效） ---------- */
@@ -265,6 +269,8 @@ const S={
   rareItems:{sword:false,frost:false,flame:false,void:false,bone:false},
   hotbar:['probe','blast','miner','cat','treasure','shield','hourglass','teleport'],
   event:null,
+  season:0,seasonT:0,
+  eventsSeen:[],bossesKilled:0,questIdx:0,
   musicOn:false,musicVol:0.45,
 };
 
@@ -378,8 +384,9 @@ function distToTerrain(x,y,terr){
 }
 function placeLakes(rng,cx,cy,maxR){
   const half=Math.min(cx,cy);
+  const lakeCount=5+(S.rebirths>=4?2:0); /* 转生解锁：更多湖泊 */
   const tries=200;
-  for(let l=0;l<5;l++){
+  for(let l=0;l<lakeCount;l++){
     let okCenter=false,lcx=0,lcy=0;
     for(let t=0;t<tries&&!okCenter;t++){
       const ang=rng()*Math.PI*2;
@@ -555,15 +562,90 @@ const EVENTS={
   night:{name:'夜幕降临',icon:'🌙',mult:1,top:'rgba(12,12,42,.62)',petal:'✨',dur:80000,weight:30,music:'night'},
   solar:{name:'日食',icon:'🌑',mult:1.5,top:'rgba(120,75,20,.5)',petal:'🌟',dur:60000,weight:20,music:'solar'},
   lunar:{name:'血月',icon:'🌕',mult:2,top:'rgba(96,8,30,.55)',petal:'🔥',dur:50000,weight:20,music:'lunar'},
+  thunder:{name:'雷暴',icon:'⛈️',mult:1.5,top:'rgba(40,40,80,.5)',petal:'⚡',dur:60000,weight:0,music:'solar'},
 };
+/* 转生解锁一览 */
+const REBIRTH_UNLOCKS=[
+ {at:1,desc:'野外 Boss 的战利品更加丰厚'},
+ {at:2,desc:'新世界事件「雷暴」降临（收入×1.5）'},
+ {at:3,desc:'地下城金币奖励随转生次数增长'},
+ {at:4,desc:'大陆上多出 2 座湖泊'},
+ {at:5,desc:'雷暴中 30% 概率踩雷不扣钱'},
+];
 function eventMult(){return S.event?EVENTS[S.event.type].mult:1;}
 function pickEvent(){
   const keys=Object.keys(EVENTS);
   let total=0;
-  for(const k of keys)total+=EVENTS[k].weight;
+  for(const k of keys){
+    const w=EVENTS[k].weight+(k==='thunder'&&S.rebirths>=2?22:0);
+    total+=w;
+  }
   let r=Math.random()*total;
-  for(const k of keys){r-=EVENTS[k].weight;if(r<=0)return k;}
+  for(const k of keys){
+    const w=EVENTS[k].weight+(k==='thunder'&&S.rebirths>=2?22:0);
+    r-=w;
+    if(r<=0)return k;
+  }
   return 'fog';
+}
+/* ---------- 季节更替 ---------- */
+const SEASONS=[
+ {name:'春',icon:'🌿',tint:'rgba(120,220,150,0.06)',petal:'🌸'},
+ {name:'夏',icon:'☀️',tint:'rgba(255,230,120,0.06)',petal:'🍃'},
+ {name:'秋',icon:'🍂',tint:'rgba(255,170,80,0.08)',petal:'🍁'},
+ {name:'冬',icon:'❄️',tint:'rgba(170,210,255,0.08)',petal:'❄️'},
+];
+function seasonInfo(){return SEASONS[S.season%4];}
+function seasonTick(){
+  if(Date.now()-S.seasonT>480000){S.season=(S.season+1)%4;S.seasonT=Date.now();refreshHUD();}
+}
+/* ---------- 主线任务链 ---------- */
+const QUESTS=[
+ {id:0,name:'启程',story:'幻渊大陆在你的脚下铺开。雷海深处藏着无数秘密——先从脚下开始吧。',obj:'翻开 300 格',cond:s=>s.stats.revealedCount>=300,gold:500},
+ {id:1,name:'雷海初涉',story:'人们说越往外雷越密，但数字也越大。准备好你的工具，向深处迈出第一步。',obj:'购买 1 个探测探针并使用',cond:s=>s.items.probe>=1||s.stats.revealedCount>=2000,gold:1000},
+ {id:2,name:'第一件收藏',story:'古老的传说提到：被 8 颗雷包围的宝物，拥有扭转命运的力量。',obj:'收集 1 件收藏品',cond:s=>s.stats.collected>=1,gold:3000},
+ {id:3,name:'湖之低语',story:'五座湖泊静静躺在幻渊中。渔人们说，将湖周完全点亮，能听到仙女的歌声。',obj:'获得 1 次湖中仙女祝福',cond:s=>lakeBlessCount()>=1,gold:8000},
+ {id:4,name:'勇者之路',story:'铁匠铺的老板收下你的金币，交给你一柄感应魔王气息的圣剑。',obj:'购买勇者之剑',cond:s=>s.heroSword,gold:15000},
+ {id:5,name:'洞窟深处',story:'冰霜从洞窟深处渗出。传说霜龙之泪能让财富永不冻结。',obj:'通关任意一座副本（讨伐首领）',cond:s=>s.stats.dungeonWins>=1,gold:30000,star:10},
+ {id:6,name:'魔王讨伐',story:'你已直面过深渊的爪牙。现在，穿过五层雷墙，让魔王见识你的剑。',obj:'通关魔王城堡地下城',cond:s=>s.stats.dungeonWins>=1&&s.rareItems.sword,gold:50000,star:30},
+ {id:7,name:'世界之秘',story:'幻渊尚有未解之谜：火山会苏醒，星辰会坠落。揭示五成以上的世界吧。',obj:'揭示率达到 50%',cond:s=>s.stats.revealedCount/N>=0.5,gold:100000,star:100},
+];
+function questTitle(){return S.questIdx<QUESTS.length?QUESTS[S.questIdx].name:'已通关全部主线';}
+function checkQuests(){
+  if(S.questIdx>=QUESTS.length)return;
+  const q=QUESTS[S.questIdx];
+  if(q.cond(S)){
+    let txt=q.gold?'+'+fmt(q.gold)+'💰':'';
+    if(q.star){S.stardust+=q.star;txt+=' +'+q.star+'✨';}
+    if(q.gold)S.gold+=q.gold;
+    S.questIdx++;
+    FX.toast('📜 主线完成：「'+q.name+'」 '+txt);
+    FX.quest(q,txt);
+    refreshHUD();saveSoon();
+  }
+}
+function nextQuestHtml(){
+  if(S.questIdx>=QUESTS.length)return '<p style="color:#ffd166">—— 主线全通！幻渊的历史由你书写 ——</p>';
+  const q=QUESTS[S.questIdx];
+  return '<p style="color:#c9b8e8">下一章 ·「'+q.name+'」：'+q.obj+'</p>';
+}
+/* ---------- 称号（按冒险事迹自动升级） ---------- */
+function unlockSummary(){
+  const got=REBIRTH_UNLOCKS.filter(u=>S.rebirths>=u.at);
+  const next=REBIRTH_UNLOCKS.find(u=>S.rebirths<u.at);
+  const gotTxt=got.length?got.map(u=>'✅ 第'+u.at+'世：'+u.desc).join('<br>')+'<br>':'';
+  const nextTxt=next?'🔒 第'+next.at+'世解锁：'+next.desc:'<span style="color:#ffd166">—— 所有转生秘密已揭开 ——</span>';
+  return gotTxt+nextTxt;
+}
+function currentTitle(){
+  const ach=S.achievements.length;
+  if(S.rareItems.sword)return'魔王讨伐者';
+  if(ach>=14)return'幻渊传奇';
+  if(ach>=10)return'深渊勇者';
+  if(ach>=6)return'雷海行者';
+  if(ach>=3)return'小小冒险家';
+  if(S.stats.revealedCount>=1000)return'初探者';
+  return'新芽';
 }
 function resetMeta(){
   S.revealedSum=0;S.gold=500;S.mult=1;S.cat=0;S.offlineMult=1;
@@ -578,7 +660,8 @@ function resetMeta(){
   S.dungeons=[];S.dungeonsDiscovered=[];
   S.rareItems={sword:false,frost:false,flame:false,void:false,bone:false};
   S.event=null;
-  /* 星尘 / 星尘强化 / 成就 / 转生次数 / 里程碑 / 道具栏布局 跨转生保留 */
+  S.questIdx=0;
+  /* 跨转生保留：星尘/强化/成就/里程碑/道具栏布局/季节/图鉴经历(eventsSeen,bossesKilled) */
 }
 /* 密度布雷（独立小函数，保证被 V8 优化） */
 function genDensity(rng,mineMap,cx,cy,maxR){
@@ -676,6 +759,7 @@ function triggerMine(x,y){
   touch(i);paintPx(i);
   let loss=Math.max(S.gold*0.15,rate()*10);
   if(S.rng&&S.rng()<S.bonus.dodge)loss=0;
+  if(S.event&&S.event.type==='thunder'&&S.rebirths>=5&&Math.random()<0.3)loss=0; /* 雷暴庇佑 */
   loss*=S.bonus.hitLoss*(1-0.10*S.starUpgrades.shield)*rareHitMult();
   let freeze=true;
   if(S.shield>0){ /* 护盾抵消本次雷击 */
@@ -703,16 +787,22 @@ function revealAt(x,y){
   revealFlood(x,y);
   return{exploded:false};
 }
-function chord(x,y){
-  const i=idx(x,y),n=S.numMap[i];
-  if(n<=0)return;
-  let fl=0;
+/* 数字周围已确认的雷信号数 = 插旗数 + 已探明雷数（探针/雷达揭示的炸弹也算） */
+function mineSignalsAround(x,y){
+  let c=0;
   for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
     if(!ox&&!oy)continue;
     const nx=x+ox,ny=y+oy;
-    if(inB(nx,ny)&&S.flagMap[idx(nx,ny)])fl++;
+    if(!inB(nx,ny))continue;
+    const j=idx(nx,ny);
+    if(S.flagMap[j]||(S.revMap[j]&&S.mineMap[j]))c++;
   }
-  if(fl!==n)return;
+  return c;
+}
+function chord(x,y){
+  const i=idx(x,y),n=S.numMap[i];
+  if(n<=0)return;
+  if(mineSignalsAround(x,y)!==n)return; /* 旗帜 + 已探明雷 = 数字 → 自动解开其余 */
   beginChange();
   for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
     if(!ox&&!oy)continue;
@@ -883,6 +973,7 @@ function saveGame(){
       shield:S.shield,boost:S.boost,autoProbe:S.autoProbe,
       worldItems:S.worldItems,foil:S.foil,lakeBlessed:S.lakeBlessed,
       heroSword:S.heroSword,dungeonsDiscovered:S.dungeonsDiscovered,rareItems:S.rareItems,hotbar:S.hotbar,
+      season:S.season,seasonT:S.seasonT,eventsSeen:S.eventsSeen,bossesKilled:S.bossesKilled,questIdx:S.questIdx,
       musicOn:S.musicOn,musicVol:S.musicVol,
       miners:S.miners.map(m=>({px:m.px,py:m.py,dx:m.dx,dy:m.dy,cost:m.cost})),
       rev:packBits(S.revMap),flags:packBits(S.flagMap),t:Date.now(),muted:SFX.muted};
@@ -997,7 +1088,7 @@ const SFX=(()=>{
   };
 })();
 /* 特效钩子：测试环境为 no-op */
-const FX={explode(){},collect(){},coin(){},blast(){},pop(){},flag(){},toast(){},shield(){},anchor(){},meteor(){}};
+const FX={explode(){},collect(){},coin(){},blast(){},pop(){},flag(){},toast(){},shield(){},anchor(){},meteor(){},quest(){}};
 
 /* ---------- 落点距离规则（操作目标须距已探索区域 ≤20 格） ---------- */
 const REVEAL_RANGE=20;
@@ -1255,7 +1346,199 @@ setInterval(()=>{ /* 收藏品闪烁 */
   drawMinimapRings();
 },500);
 
-/* ---------- 湖中仙女祝福：湖泊周围 3 层全部翻开后获得 ---------- */
+/* ---------- 野外 Boss 与神秘商人（游荡事件） ---------- */
+function wanderPos(){
+  const half=Math.min(W,H)/2;
+  for(let t=0;t<80;t++){
+    const ang=Math.random()*Math.PI*2;
+    const r=half*(0.45+Math.random()*0.5);
+    const x=Math.round(W/2+Math.cos(ang)*r),y=Math.round(H/2+Math.sin(ang)*r);
+    if(x>6&&y>6&&x<W-7&&y<H-7)return{x,y};
+  }
+  return{x:Math.max(6,W-200),y:Math.max(6,H-200)};
+}
+function bossName(tier){return tier===1?'小妖王':tier===2?'深渊魔像':'太古巨龙';}
+function spawnBoss(){
+  const tier=1+((Math.random()*3)|0);
+  const p=wanderPos();
+  const hp=Math.round((60+tier*50)*(1+0.4*S.rebirths));
+  S.boss={x:p.x,y:p.y,tier,hp,hpMax:hp};
+  FX.toast('👹 野外 Boss 出现：'+bossName(tier)+'（'+tier+'阶）！点击它发起挑战');
+  refreshHUD();saveSoon();
+}
+function makeMerchantOffers(){
+  const pool=[
+    {k:'probe',icon:'🔭',n:3,label:'探测探针 ×3'},
+    {k:'blast',icon:'💥',n:1,label:'爆破装置 ×1'},
+    {k:'miner',icon:'🤖',n:1,label:'自动矿工 ×1'},
+    {k:'hourglass',icon:'⏳',n:2,label:'时间沙漏 ×2'},
+    {k:'shield',icon:'🛡️',n:2,label:'护盾 ×2'},
+    {k:'cat',icon:'🐱',n:1,label:'招财猫 +1 级'},
+    {k:'star',icon:'✨',n:10,label:'星尘 ×10'},
+    {k:'gold',icon:'💰',n:1,label:'金币大礼包（当前收入×1800）'},
+  ];
+  for(let i=pool.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[pool[i],pool[j]]=[pool[j],pool[i]];}
+  return pool.slice(0,3).map(o=>({...o,sold:false}));
+}
+function merchantOfferPrice(o){
+  if(o.k==='probe')return Math.ceil(0.7*3*costProbe());
+  if(o.k==='blast')return Math.ceil(0.7*costBlast());
+  if(o.k==='miner')return Math.ceil(0.7*costMiner());
+  if(o.k==='hourglass')return Math.ceil(0.7*2*costHourglass());
+  if(o.k==='shield')return Math.ceil(0.7*2*costShield());
+  if(o.k==='cat')return Math.ceil(0.7*costCat());
+  if(o.k==='star')return 3000;
+  return 5000;
+}
+function spawnMerchant(){
+  const p=wanderPos();
+  S.merchant={x:p.x,y:p.y,offers:makeMerchantOffers()};
+  FX.toast('🧺 神秘商人出现了！点击他的货摊逛逛（限时 3 分钟）');
+  refreshHUD();
+}
+function openMerchant(){
+  const m=S.merchant;
+  if(!m)return;
+  const html='<p style="text-align:center;color:#c9b8e8;font-size:13px">「远方的旅人，需要些好东西吗？折扣仅此一次。」</p>'+
+    m.offers.map((o,i)=>'<div class="item">'+
+      '<div class="item-icon">'+o.icon+'</div>'+
+      '<div class="item-info"><div class="item-name">'+o.label+(o.sold?' <span style="color:#6f5f9a">已售罄</span>':'')+'</div>'+
+      '<div class="item-cost">💰 '+fmt(merchantOfferPrice(o))+'</div></div>'+
+      '<div class="item-actions"><button class="btn-buy" data-mo="'+i+'"'+(o.sold||S.gold<merchantOfferPrice(o)?' disabled':'')+'>购买</button></div>'+
+    '</div>').join('');
+  showModal('🧺 神秘商人',html);
+  const body=document.getElementById('modalBody');
+  if(body&&body.querySelectorAll){
+    body.querySelectorAll('button[data-mo]').forEach(b=>{
+      b.onclick=()=>{
+        const i=+b.dataset.mo;
+        merchantBuy(i);
+        openMerchant(); /* 刷新 */
+      };
+    });
+  }
+}
+function merchantBuy(i){
+  const m=S.merchant;
+  const o=m.offers[i];
+  if(!o||o.sold)return;
+  const p=merchantOfferPrice(o);
+  if(S.gold<p)return;
+  S.gold-=p;
+  o.sold=true;
+  if(o.k==='probe')S.items.probe+=o.n;
+  else if(o.k==='blast')S.items.blast+=o.n;
+  else if(o.k==='miner')S.items.miner+=o.n;
+  else if(o.k==='hourglass')S.items.hourglass+=o.n;
+  else if(o.k==='shield')S.items.shield+=o.n;
+  else if(o.k==='cat')S.cat++;
+  else if(o.k==='star')S.stardust+=o.n;
+  else if(o.k==='gold')S.gold+=Math.floor(rate()*1800);
+  SFX.coin();
+  FX.toast('🛍️ 成交：'+o.label);
+  refreshHUD();saveSoon();
+}
+/* 野外 Boss 战斗 */
+let bossFightTimer=null;
+function openBossBattle(){
+  const b=S.boss;
+  if(!b||b.hp<=0)return;
+  const nm=bossName(b.tier);
+  showModal('👹 '+nm+'（'+b.tier+'阶）','<div class="big">👹</div>'+
+    '<p style="text-align:center">Boss 生命：<b id="bossHpTxt">'+b.hp+'</b> / '+b.hpMax+'</p>'+
+    '<div style="height:14px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden;margin:6px 0"><div id="bossBar" style="height:100%;width:'+Math.round(b.hp/b.hpMax*100)+'%;background:linear-gradient(90deg,#ff5c8a,#ff9f43)"></div></div>'+
+    '<p style="text-align:center;color:#c9b8e8;font-size:12px">点击 ⚔️ 攻击！Boss 每 1.5 秒反击（损失金币），打不过就快逃。</p>'+
+    '<div style="display:flex;justify-content:center;gap:10px"><button id="bossAtk" style="background:linear-gradient(135deg,#ff5c8a,#ff9f43)">⚔️ 攻击</button><button id="bossFlee" style="background:rgba(255,255,255,.14)">🏃 逃离</button></div>');
+  const atk=document.getElementById('bossAtk');
+  const flee=document.getElementById('bossFlee');
+  const dmg=12+S.cat*2+(S.starUpgrades.income>0?4:0);
+  const deal=()=>{
+    if(!S.boss){stopBossFight();return;}
+    S.boss.hp-=dmg;
+    updateBossBar();
+    if(S.boss.hp<=0){
+      S.boss.hp=0;
+      stopBossFight();
+      const reward=Math.floor((3000+S.boss.tier*5000)*(1+0.5*S.rebirths));
+      const stars=Math.floor((5+S.boss.tier*5)*(1+0.3*S.rebirths));
+      S.gold+=reward;S.stardust+=stars;
+      S.bossesKilled++;
+      checkAchievements();
+      const rm=Math.random()<0.25;
+      let rareTxt='';
+      if(rm){
+        const avail=Object.keys(RARE_DEFS).filter(k=>!S.rareItems[k]);
+        if(avail.length){
+          const kk=avail[(Math.random()*avail.length)|0];
+          S.rareItems[kk]=true;
+          rareTxt='<p style="color:#ffd166;font-weight:bold">🌟 战利品：限定稀有道具 '+RARE_DEFS[kk].icon+' '+RARE_DEFS[kk].name+'！</p>';
+        }
+      }
+      S.boss=null;
+      showModal('🏆 讨伐成功！','<div class="big">🎉</div><p>你击败了 '+nm+'！</p><p style="color:#ffd166">+'+fmt(reward)+'💰 +'+stars+'✨</p>'+rareTxt);
+      refreshHUD();saveSoon();
+      return;
+    }
+    SFX.pop();
+  };
+  if(atk)atk.onclick=deal;
+  if(flee)flee.onclick=()=>{stopBossFight();showModal('🏃 逃离','<p>你明智地撤出了战斗……下次再会。</p>');};
+  stopBossFight();
+  bossFightTimer=setInterval(()=>{
+    if(!S.boss){stopBossFight();return;}
+    const loss=Math.max(40,Math.floor(rate()*3));
+    S.gold=Math.max(0,S.gold-loss);
+    SFX.explode();
+    FX.toast('👹 '+nm+' 反击！-'+fmt(loss)+'💰');
+    refreshHUD();saveSoon();
+  },1500);
+}
+function updateBossBar(){
+  const b=S.boss;
+  const t=document.getElementById('bossHpTxt');
+  const bar=document.getElementById('bossBar');
+  if(t)t.textContent=b.hp;
+  if(bar)bar.style.width=Math.max(0,Math.round(b.hp/b.hpMax*100))+'%';
+}
+function stopBossFight(){if(bossFightTimer){clearInterval(bossFightTimer);bossFightTimer=null;}}
+/* 游荡事件调度 */
+function wanderTick(){
+  const now=Date.now();
+  if(!S.boss&&now>S.bossNext)spawnBoss();
+  if(!S.merchant&&now>S.merchantNext)spawnMerchant();
+}
+/* 地图标记（Boss/商人） */
+function drawWorldMarkers(){
+  const s=view.scale,ox=view.x,oy=view.y;
+  const now=performance.now();
+  if(S.boss){
+    const b=S.boss;
+    const sx=(b.x+0.5-ox)*s,sy=(b.y+0.5-oy)*s;
+    if(sx>-30&&sy>-30&&sx<cw+30&&sy<ch+30){
+      const pulse=0.5+0.5*Math.sin(now/220);
+      gctx.strokeStyle='rgba(255,80,90,'+(0.4+0.5*pulse)+')';
+      gctx.lineWidth=2.5;
+      gctx.setLineDash([5,4]);
+      gctx.beginPath();
+      gctx.arc(sx,sy,Math.max(8,s*0.9),0,Math.PI*2);
+      gctx.stroke();
+      gctx.setLineDash([]);
+      gctx.font=(Math.max(12,Math.min(24,s*0.8)))+'px sans-serif';
+      gctx.textAlign='center';gctx.textBaseline='middle';
+      gctx.fillText('👹',sx,sy);
+    }
+  }
+  if(S.merchant){
+    const m=S.merchant;
+    const sx=(m.x+0.5-ox)*s,sy=(m.y+0.5-oy)*s;
+    if(sx>-30&&sy>-30&&sx<cw+30&&sy<ch+30){
+      gctx.font=(Math.max(11,Math.min(20,s*0.7)))+'px sans-serif';
+      gctx.textAlign='center';gctx.textBaseline='middle';
+      gctx.fillStyle='rgba(255,240,200,0.8)';
+      gctx.fillText('🧺',sx,sy);
+    }
+  }
+}
 function checkLakes(){
   for(let i=0;i<S.lakeData.length;i++){
     if(S.lakeBlessed&(1<<i))continue;
@@ -1312,6 +1595,7 @@ const TOPBAR_BASE='rgba(20,10,40,.55)';
 function startEvent(type){
   const ev=EVENTS[type];
   S.event={type,end:Date.now()+ev.dur};
+  if(!S.eventsSeen.includes(type))S.eventsSeen.push(type);
   FX.toast('🌍 世界事件：'+ev.icon+' '+ev.name+'（'+(ev.mult!==1?'收入 ×'+ev.mult:'无收入影响')+'）');
   SFX.coin();
   /* 导航栏特效 */
@@ -1326,15 +1610,20 @@ function startEvent(type){
   }
   refreshHUD();
 }
+/* 环境飘落粒子：无事件时跟随季节 */
+function applyAmbientPetals(){
+  const se=seasonInfo();
+  for(const p of petalEls){
+    p.textContent=se.petal;
+    p.style.fontSize=(10+Math.random()*14)+'px';
+  }
+}
 function endEvent(){
   S.event=null;
   const tb=document.getElementById('topbar');
   if(tb)tb.style.background=TOPBAR_BASE;
   MUSIC.setStyle('normal');
-  for(const p of petalEls){
-    p.textContent=p.dataset.orig||'🌸';
-    p.style.fontSize=(10+Math.random()*14)+'px';
-  }
+  applyAmbientPetals();
   refreshHUD();
 }
 function eventTick(){
@@ -1347,7 +1636,12 @@ function eventTick(){
   startEvent(pickEvent());
   nextEventAt=now+120000+Math.random()*120000;
 }
-/* 事件叠加层（渲染时绘制）—— 每个事件都有专属特效 */
+/* 季节色调（轻微氛围色） */
+function drawSeasonTint(){
+  const se=seasonInfo();
+  gctx.fillStyle=se.tint;
+  gctx.fillRect(0,0,cw,ch);
+}
 function drawEventOverlay(){
   if(!S.event)return;
   const now=performance.now();
@@ -1517,35 +1811,75 @@ function resize(){
 }
 window.addEventListener('resize',resize);
 
-/* ---------- 输入 ---------- */
+/* ---------- 输入（含触屏：旗子模式/长按插旗/双指缩放） ---------- */
 let down=false,moved=false,downX=0,downY=0,panX=0,panY=0;
+let flagMode=false,longTimer=null,longCell=null,longFired=false,pinchDist=0,pinchMid=null;
+const pointers={};
 function canvasPos(e){const r=game.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function setFlagMode(v){flagMode=v;const b=$('flagBtn');if(b)b.classList.toggle('active',v);}
+function cancelLong(){if(longTimer){clearTimeout(longTimer);longTimer=null;}}
 game.addEventListener('pointerdown',e=>{
-  if(e.button!==0)return; /* 只响应左键：右键仅用于插旗 */
   SFX.unlock();MUSIC.unlock();
+  pointers[e.pointerId]={x:e.clientX,y:e.clientY};
+  const ids=Object.keys(pointers);
+  if(ids.length>=2){ /* 双指捏合缩放 */
+    cancelLong();down=false;
+    pinchDist=Math.hypot(pointers[ids[0]].x-pointers[ids[1]].x,pointers[ids[0]].y-pointers[ids[1]].y)||1;
+    const r=game.getBoundingClientRect();
+    pinchMid={x:(pointers[ids[0]].x+pointers[ids[1]].x)/2-r.left,y:(pointers[ids[0]].y+pointers[ids[1]].y)/2-r.top};
+    return;
+  }
+  if(e.button!==0&&e.pointerType==='mouse')return; /* 鼠标右键留给插旗 */
   down=true;moved=false;downX=e.clientX;downY=e.clientY;
   panX=view.x;panY=view.y;
   try{game.setPointerCapture(e.pointerId);}catch(_){}
+  if(e.pointerType!=='mouse'){ /* 触屏长按插旗 */
+    longFired=false;
+    cancelLong();
+    const cx=Math.floor(view.x+canvasPos(e).x/view.scale),cy=Math.floor(view.y+canvasPos(e).y/view.scale);
+    longCell={x:cx,y:cy};
+    longTimer=setTimeout(()=>{
+      if(!down||moved||S.armed)return;
+      longFired=true;
+      if(inB(longCell.x,longCell.y))handleRight(longCell.x,longCell.y);
+    },450);
+  }
 });
 game.addEventListener('pointermove',e=>{
+  if(pointers[e.pointerId])pointers[e.pointerId]={x:e.clientX,y:e.clientY};
+  const ids=Object.keys(pointers);
+  if(ids.length>=2&&pinchDist>0){
+    const d=Math.hypot(pointers[ids[0]].x-pointers[ids[1]].x,pointers[ids[0]].y-pointers[ids[1]].y);
+    if(pinchMid&&d>0)zoomAt(pinchMid.x,pinchMid.y,d/pinchDist);
+    pinchDist=d;
+    return;
+  }
   const p=canvasPos(e);
   const cx=Math.floor(view.x+p.x/view.scale),cy=Math.floor(view.y+p.y/view.scale);
   hover=inB(cx,cy)?{x:cx,y:cy,sx:p.x,sy:p.y}:null;
   if(down){
     const dx=e.clientX-downX,dy=e.clientY-downY;
-    if(Math.abs(dx)+Math.abs(dy)>5)moved=true;
+    if(Math.abs(dx)+Math.abs(dy)>5){moved=true;cancelLong();}
     if(moved){view.x=panX-dx/view.scale;view.y=panY-dy/view.scale;softClampView();}
   }
 });
 game.addEventListener('pointerup',e=>{
+  delete pointers[e.pointerId];
+  cancelLong();
+  if(Object.keys(pointers).length<2){pinchDist=0;pinchMid=null;}
   if(!down)return;
   down=false;
-  if(e.button!==0||moved)return;
+  if(e.button!==0&&e.pointerType==='mouse')return;
+  if(longFired){longFired=false;return;}
+  if(moved)return;
   const p=canvasPos(e);
   const cx=Math.floor(view.x+p.x/view.scale),cy=Math.floor(view.y+p.y/view.scale);
-  if(inB(cx,cy))handleClick(cx,cy);
+  if(inB(cx,cy)){
+    if(flagMode&&!S.armed)handleRight(cx,cy);
+    else handleClick(cx,cy);
+  }
 });
-game.addEventListener('pointercancel',()=>{down=false;});
+game.addEventListener('pointercancel',e=>{delete pointers[e.pointerId];down=false;cancelLong();pinchDist=0;pinchMid=null;});
 game.addEventListener('pointerleave',()=>{hover=null;});
 game.addEventListener('wheel',e=>{
   e.preventDefault();
@@ -1561,6 +1895,9 @@ game.addEventListener('contextmenu',e=>{
 function handleClick(x,y){
   if(!inB(x,y))return;
   const i=idx(x,y);
+  /* 野外Boss / 神秘商人：靠近即触发 */
+  if(S.boss&&Math.abs(S.boss.x-x)<=1&&Math.abs(S.boss.y-y)<=1){openBossBattle();return;}
+  if(S.merchant&&Math.abs(S.merchant.x-x)<=1&&Math.abs(S.merchant.y-y)<=1){openMerchant();return;}
   const t=S.terrainMap[i];
   if(t===1||t===2||t===3){
     const names={1:'湖泊',2:'火山',3:'世界之壁'};
@@ -1616,6 +1953,7 @@ window.addEventListener('keydown',e=>{
   else if(k==='7')handleSlotAction(S.hotbar[6]);
   else if(k==='8')handleSlotAction(S.hotbar[7]);
   else if(k==='escape'){ if(!$('popup').classList.contains('hidden'))closePopup(); else setArmed(null); }
+  else if(k==='f')setFlagMode(!flagMode);
   clampView();
 });
 minimap.addEventListener('pointerdown',e=>{
@@ -1882,7 +2220,8 @@ function dungeonDig(px,py){
     if(d.floor>=d.floors){
       d.over=true;
       const def=d.def;
-      const reward=30000+d.floors*8000,stars=10+d.floors*5;
+      const rb=1+0.25*S.rebirths; /* 转生解锁：地下城奖励增长 */
+      const reward=Math.floor((30000+d.floors*8000)*rb),stars=Math.floor((10+d.floors*5)*rb);
       d.loot+=reward;d.stars+=stars;
       S.gold+=reward;S.stardust+=stars;
       S.stats.dungeonWins++;
@@ -1937,9 +2276,10 @@ function dungeonDig(px,py){
     SFX.explode();
     FX.toast('💥 踩中陷阱 -'+dmg+' HP');
   }else if(t===DT.MONSTER){
-    const mlv=(d.base||0)+d.floor+((Math.random()*2)|0);
-    const dmg=5+(d.floor+d.base)*3+((Math.random()*8)|0);
-    const loot=(300+d.floor*400)|0;
+    const rb=1+0.25*S.rebirths;
+    const mlv=(d.base||0)+d.floor+((Math.random()*2)|0)+Math.floor(S.rebirths/2);
+    const dmg=5+(d.floor+d.base)*3+((Math.random()*8)|0)+Math.floor(S.rebirths/2)*2;
+    const loot=Math.floor((300+d.floor*400)*rb);
     d.hp-=dmg;S.gold+=loot;d.loot+=loot;
     SFX.explode();
     FX.toast('⚔️ 击败 Lv.'+mlv+' 怪物！+'+fmt(loot)+'💰（受到 '+dmg+' 伤害）');
@@ -2149,6 +2489,7 @@ Object.assign(FX,{
   flag(){SFX.flag();},
   shield(x,y){SFX.shield();},
   toast(text){toastShow(text);},
+  quest(q,txt){showModal('📜 主线任务完成','<div class="big">📜</div><p><b>「'+q.name+'」</b></p><p>'+q.story+'</p><p style="color:#ffd166">奖励：'+txt+'</p>'+nextQuestHtml());},
 });
 
 /* ---------- 像素小猫（在已翻开的空白格游荡，行为丰富） ---------- */
@@ -2359,10 +2700,12 @@ function render(t){
   drawDecos();
   drawTreasureMarkers();
   drawHeroSwordMarker();
+  drawWorldMarkers();
   drawCats();
   drawMiners();
   drawHover();
   gctx.restore();
+  drawSeasonTint();
   drawEventOverlay();
   fctx.clearRect(0,0,cw,ch);
   drawParticles();
@@ -2809,7 +3152,7 @@ function drawHover(){
     }
   }else{
     const i=idx(hover.x,hover.y);
-    const chordReady=S.revMap[i]&&!S.mineMap[i]&&S.numMap[i]>0&&flagsAround(hover.x,hover.y)===S.numMap[i];
+    const chordReady=S.revMap[i]&&!S.mineMap[i]&&S.numMap[i]>0&&mineSignalsAround(hover.x,hover.y)===S.numMap[i];
     if(chordReady){
       /* 旗数=数字 → 点击可连锁翻开（金色脉冲提示） */
       const pulse=0.5+0.5*Math.sin(performance.now()/200);
@@ -2823,15 +3166,6 @@ function drawHover(){
     gctx.lineWidth=2;
     gctx.strokeRect((hover.x-ox)*s+1,(hover.y-oy)*s+1,s-2,s-2);
   }
-}
-function flagsAround(x,y){
-  let fl=0;
-  for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
-    if(!ox&&!oy)continue;
-    const nx=x+ox,ny=y+oy;
-    if(inB(nx,ny)&&S.flagMap[idx(nx,ny)])fl++;
-  }
-  return fl;
 }
 function drawParticles(){
   for(const p of parts){
@@ -2930,7 +3264,7 @@ function resetGame(){
     centerOn(W/2,H/2);
     refreshHUD();
     while(cats.length<TARGET_CATS)spawnCat();
-    showModal('🌌 转生成功！','<div class="big">✨ +'+earned+' 星尘</div><p>本局翻开 '+fmt(rev)+' 格 · 收集 '+col+' 件收藏品。</p><p>星尘可在「商店 → ✨ 星尘商店」永久强化属性（跨转生保留）。</p><p>新世界已生成，从中心重新开始探索吧～</p>');
+    showModal('🌌 转生成功！','<div class="big">✨ +'+earned+' 星尘</div><p>本局翻开 '+fmt(rev)+' 格 · 收集 '+col+' 件收藏品。</p><p>星尘可在「商店 → ✨ 星尘商店」永久强化属性（跨转生保留）。</p><p>第 '+S.rebirths+' 世：'+unlockSummary()+'</p><p>新世界已生成，从中心重新开始探索吧～</p>');
   });
 }
 const welcomeHtml=
@@ -2966,6 +3300,13 @@ refreshHUD=function(){
     const left=Math.max(0,Math.ceil((S.event.end-Date.now())/1000));
     he.style.display='';he.textContent=ev.icon+' '+ev.name+' '+left+'s'+(ev.mult!==1?' ×'+ev.mult:'');
   }else he.style.display='none';
+  const hse=$('hudSeason');
+  if(hse){
+    const se=seasonInfo();
+    hse.style.display='';hse.textContent=se.icon+' '+se.name;
+  }
+  const hti=$('hudTitle');
+  if(hti){hti.style.display='';hti.textContent='🏅 '+currentTitle();}
 };
 function refreshShop(){
   const L=$('shopList');
@@ -3101,6 +3442,9 @@ function refreshInfo(){
     '<div>🌍 世界道具：🗼 灯塔锚点 '+(S.worldItems.anchor===0?'未购':S.worldItems.anchor===1?'待使用':'已使用')+' · 📄 二向箔 '+(S.worldItems.foil===0?'未购':S.worldItems.foil===1?'待展开':'已展开')+(S.foil&&S.foil.active?'（展开中）':'')+'</div>'+
     '<div>🏰 副本：发现 <b>'+S.dungeonsDiscovered.length+' / '+S.dungeons.length+'</b> · 🗡️ 勇者之剑：'+(S.heroSword?'已拥有':'未拥有')+'</div>'+
     '<div>🌟 限定稀有道具：<b>'+Object.keys(RARE_DEFS).filter(k=>S.rareItems[k]).length+' / '+Object.keys(RARE_DEFS).length+'</b> '+Object.keys(RARE_DEFS).map(k=>S.rareItems[k]?RARE_DEFS[k].icon:'').join('')+'</div>'+
+    '<div>🏅 称号：<b>'+currentTitle()+'</b>（'+S.achievements.length+'/'+ACHIEVEMENTS.length+' 成就 · '+(S.questIdx)+'/'+QUESTS.length+' 主线）</div>'+
+    '<div>📜 主线任务：<b>'+(S.questIdx<QUESTS.length?QUESTS[S.questIdx].obj:'✅ 已全部完成！')+'</b></div>'+
+    '<div>🌍 经历事件：'+(S.eventsSeen.length?S.eventsSeen.map(t=>EVENTS[t].icon+' '+EVENTS[t].name).join(' · '):'（尚无）')+' · ⚔️ 讨伐野外Boss：'+S.bossesKilled+'</div>'+
     '<div style="margin-top:10px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.15)">🏆 成就 <b>'+S.achievements.length+'/'+ACHIEVEMENTS.length+'</b></div>'+
     ACHIEVEMENTS.map(a=>{
       const done=S.achievements.includes(a.id);
@@ -3118,8 +3462,10 @@ function goldTick(){
   else S.gold+=rate();
   if(S.boost>0)S.boost--;
   S.stats.timeSec++;
+  seasonTick();
   checkMilestones();
   checkAchievements();
+  checkQuests();
   refreshHUD();
 }
 function openPopup(title,id){
@@ -3346,6 +3692,7 @@ function buildShell(){
   $('zoomOut').addEventListener('click',()=>zoomAt(cw/2,ch/2,0.77));
   $('mmIn').addEventListener('click',mmZoomIn);
   $('mmOut').addEventListener('click',mmZoomOut);
+  $('flagBtn').addEventListener('click',()=>setFlagMode(!flagMode));
   $('btnCenter').addEventListener('click',()=>centerOn(W/2,H/2));
   $('btnFit').addEventListener('click',()=>{
     view.scale=fitScale();
@@ -3434,6 +3781,11 @@ function boot(){
       S.dungeonsDiscovered=Array.isArray(saved.dungeonsDiscovered)?saved.dungeonsDiscovered:[];
       S.rareItems=Object.assign({sword:false,frost:false,flame:false,void:false,bone:false},saved.rareItems);
       if(Array.isArray(saved.hotbar)&&saved.hotbar.length===8)S.hotbar=saved.hotbar;
+      S.season=(typeof saved.season==='number')?saved.season:0;
+      S.seasonT=saved.seasonT||Date.now();
+      S.eventsSeen=Array.isArray(saved.eventsSeen)?saved.eventsSeen:[];
+      S.bossesKilled=saved.bossesKilled||0;
+      S.questIdx=saved.questIdx||0;
       S.musicOn=!!saved.musicOn;
       S.musicVol=(typeof saved.musicVol==='number')?saved.musicVol:0.45;
       (saved.collectedMask||0).toString(2).split('').reverse().forEach((v,i)=>{if(v==='1'&&S.colls[i])S.colls[i].collected=true;});
@@ -3454,12 +3806,17 @@ function boot(){
     $('loadScreen').style.display='none';
     centerOn(W/2,H/2);
     refreshHUD();
+    if(!S.seasonT)S.seasonT=Date.now();
+    applyAmbientPetals();
     while(cats.length<TARGET_CATS)spawnCat();
     let lastMinerT=performance.now();
     setInterval(()=>{const now=performance.now();stepMiners(now-lastMinerT);lastMinerT=now;},100);
     setInterval(goldTick,1000);
     nextEventAt=Date.now()+90000+Math.random()*60000;
     setInterval(eventTick,1000);
+    S.bossNext=Date.now()+150000+Math.random()*120000;
+    S.merchantNext=Date.now()+90000+Math.random()*120000;
+    setInterval(wanderTick,2000);
     setInterval(()=>{while(cats.length<TARGET_CATS)spawnCat();},3000);
     setInterval(()=>{ /* 自动探针 */
       if(S.autoProbe){probeReveal(S.autoProbe.x,S.autoProbe.y);FX.pop();refreshHUD();saveSoon();}
@@ -3494,6 +3851,9 @@ MS.MUSIC=MUSIC;MS.activateHourglass=activateHourglass;MS.buyStar=buyStar;MS.useT
 MS.useAnchor=useAnchor;MS.activateFoil=activateFoil;MS.foilTick=foilTick;MS.checkLakes=checkLakes;MS.eruptVolcano=eruptVolcano;MS.meteorRain=meteorRain;MS.openDungeon=openDungeon;MS.dungeonDig=dungeonDig;
 MS.startEvent=startEvent;MS.endEvent=endEvent;MS.eventTick=eventTick;MS.showHeroSwordModal=showHeroSwordModal;MS.checkDungeons=checkDungeons;MS.refreshDungeons=refreshDungeons;MS.buildHotbar=buildHotbar;MS.handleSlotAction=handleSlotAction;
 MS.mmZoomIn=mmZoomIn;MS.mmZoomOut=mmZoomOut;
+MS.setFlagMode=setFlagMode;MS.spawnBoss=spawnBoss;MS.spawnMerchant=spawnMerchant;MS.openBossBattle=openBossBattle;MS.openMerchant=openMerchant;MS.checkQuests=checkQuests;MS.currentTitle=currentTitle;MS.unlockSummary=unlockSummary;MS.merchantBuy=merchantBuy;MS.centerOn=centerOn;MS.setArmed=setArmed;MS.getInputState=()=>({down,moved,flagMode,pointerCount:Object.keys(pointers).length,longFired});
+Object.defineProperty(MS,'view',{get:()=>view,configurable:true});
+Object.defineProperty(MS,'flagMode',{get:()=>flagMode,configurable:true});
 Object.defineProperty(MS,'dungeon',{get:()=>dungeon,configurable:true});
 Object.defineProperty(MS,'mmView',{get:()=>mmView,configurable:true});
 boot();
